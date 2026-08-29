@@ -1,0 +1,47 @@
+vamos a empezar un proyecto nuevo, una webapp(responsive), es un portal para profesores, totalmente modular y personalizable, la idea es que se sienta como una hoja de calculo pero mucho más completo, sin tener que poner formulas ni nada. te digo cosas que debe tener desde inicio; Debe poder importar alumnos desde un xlsx y otro tipo de archivos similares y que se cree directamente la tabla con estos alumnos, su nombre, clase, numero de lista, codigo o la informacion que aparezca, en el momento de importacion el usuario debe poder elegir que cosas importar y que cosas no facilmente.
+la vista inicial del portal debe ser una tabla,  normalmente con columnas como numero de lista y nombre y apellidos del alumno, lo siguiente son 3 columnas las cuales deben ser desplegables, estas tres columnas son los 3 trimestres escolares(a los cuales se les debe poder asignar manualmente el porcentaje que cuentan para la nota final). Una vez que despliegas el trimestre, debes poder añadir tantas cosas evaluables como quieras, incluso pudiendo superar el 10 de nota (100%) por si hay casos de trabajos voluntarios o similar. en las notas evaluables debe haber una lista de predefinidos como examen (1,2,3...), libreta, trabajo(1,2,3...) y trabajo con rúbrica, este es muy importante, en el momento en que creas un trabajo con rubrica se abre el editro de rubricas, es como una tabla, dividida en mal, regular, bien, genial, con textos en cada columna y diferentes apartados, pudiendo poner el porcentaje que vale de la rubrica cada apartado, lo importante, es que luego, la rubrica sea directsamente interactuable para cada alumno, con esto me refiero, yo entro en la rubrica del alumno 1 mientras expone su trabajo, marco los apartados segun lo bien que creo que lo ha hecho, y esto crea directamente la nota que tiene en ese trabajo, luego paso al alumno 2 y puedo hacer lo mismo.Se debe poder elegir los porcentajes que cuenta cada tarea cada cosa, poner faltas (no ha ido a clase/ha llegado tarde) negativos por mal comportamiento, anotaciones, y muy importante, en principio todas las tareas evaluables afectan a todos los alumnos por igual, pero dando click derecho sobre un alumno de la tabla debe poderse poner "añadir excepción" en ese caso, ese alumno tendrá notas evaluables diferentes al rewsto, se abrirá una tablita para el solo basicamente, y así con cada alumno excepcional que haya, debe poderse agrupar alumnos excepcionales juntos si son el mismo caso y van a tener las mismas tareas evaluables. todo debe ser facilmente editable, creable y copiable.
+Se debe tener varias pestañas para varios grupos (creable y editable) por ejemplo si da clase a 1A 1B 3A 4B etc, cada uno tendrá una tabla separada.
+Al final, debe poder exportarse toda la tabla como un archivo excel, hojas de calculo o si es posible algo que sea importable para que se importen directamente las notas a Itaca (no sé si eso es posible)
+También, debe haber en la tabla la parte de nota media por trimestre por alumno, nota final del alumno, nota media de la clase por trimestre, nota media de la clase final etc etc. ya veré como lo expandimos más.
+
+PLAN: ProfesorApp - Portal de Gestión Docente
+Stack Tecnológico
+Capa	Tecnología	Justificación
+Frontend	Next.js 14+ (App Router) + TypeScript	Rendimiento, SSR, escalabilidad
+Estilos	Tailwind CSS + shadcn/ui	UI consistente, rápido de desarrollar
+Tablas	TanStack Table v8	Hoja de cálculo performante, virtualizada
+Charts	Recharts	Ligero, responsive, bien integrado con React
+XLSX	SheetJS (xlsx)	Importación/exportación Excel
+DB	Supabase (PostgreSQL)	Auth + DB + Realtime + Row Level Security
+Auth	Supabase Auth	Integrado, seguro, multi-provider
+Deploy	Vercel + Supabase Cloud	Gratis para empezar, escala después
+Modelo de Datos (Simplificado)
+users (id, email, name, avatar)
+  └── groups (id, name, code, year) -- "1A", "3B"
+        └── students (id, name, surname1, surname2, nia, list_number)
+              └── trimesters (id, group_id, name, percentage)
+                    └── assessments (id, name, type, percentage, max_score)
+                          └── grades (id, student_id, assessment_id, score, is_exception)
+                    └── absences (id, student_id, date, type: A/R, notes)
+              └── exceptions (id, student_id, assessment_id, override_score)
+Estructura de Pantallas
+Login/Register → Supabase Auth
+Dashboard → Lista de grupos, estadísticas rápidas
+Grupo (Vista Principal) → Tabla tipo hoja de cálculo
+- Columnas fijas: Nº Lista, Nombre, Apellidos
+- 3 columnas desplegables: Trimestres (editable %)
+- Dentro de cada trimestre: evaluaciones dinámicas
+Editor de Rúbricas → Modal/sheet interactuable
+Gestión de Excepciones → Click derecho → Panel lateral
+Importación → Wizard con preview de columnas
+Configuración → Notificaciones, perfil, etc.
+Funcionalidades Clave
+Importación XLSX: Wizard paso a paso, selección de columnas, mapeo automático
+Rúbricas: Editor de 4 columnas (Mal/Regular/Bien/Genial), porcentajes por fila, cálculo automático
+Excepciones: Click derecho → "Añadir excepción" → Evaluaciones personalizadas
+Exportación Excel: Formato compatible con Itaca
+Itaca: Generar CSV/XML en formato Itaca para importación directa
+
+
+
+LA BASE DE DATOS ESTÁ EN UN SERVIDOR DE ORACLE CLOUD (supabase selfhosted)-opencode tiene la mcp configurada para entrar editar y demás.
