@@ -25,6 +25,7 @@ model User {
 
   @@index([email])
   @@index([createdAt])
+  @@schema("profesorapp")
 }
 
 model Group {
@@ -60,6 +61,7 @@ model Group {
   @@index([courseId])
   @@index([year])
   @@index([createdAt])
+  @@schema("profesorapp")
 }
 
 model Student {
@@ -110,6 +112,7 @@ model Student {
   @@index([surname1])
   @@index([status])
   @@index([createdAt])
+  @@schema("profesorapp")
 }
 
 model Trimester {
@@ -125,6 +128,7 @@ model Trimester {
   absences     Absence[]
 
   @@index([groupId])
+  @@schema("profesorapp")
 }
 
 model Assessment {
@@ -147,6 +151,7 @@ model Assessment {
 
   @@index([trimesterId])
   @@index([studentId])
+  @@schema("profesorapp")
 }
 
 model Grade {
@@ -184,6 +189,7 @@ model Grade {
   @@index([status])
   @@index([numericValue])
   @@index([createdAt])
+  @@schema("profesorapp")
 }
 
 model Rubric {
@@ -195,6 +201,7 @@ model Rubric {
   rows         RubricRow[]
 
   @@index([assessmentId])
+  @@schema("profesorapp")
 }
 
 model RubricRow {
@@ -211,6 +218,7 @@ model RubricRow {
   scores         RubricScore[]
 
   @@index([rubricId])
+  @@schema("profesorapp")
 }
 
 model RubricScore {
@@ -223,6 +231,7 @@ model RubricScore {
 
   @@unique([rubricRowId, studentId])
   @@index([studentId])
+  @@schema("profesorapp")
 }
 
 model Exception {
@@ -238,6 +247,7 @@ model Exception {
   @@unique([studentId, assessmentId])
   @@index([assessmentId])
   @@index([studentId])
+  @@schema("profesorapp")
 }
 
 model Absence {
@@ -267,6 +277,7 @@ model Absence {
   @@index([evaluationId])
   @@index([contentId])
   @@index([itacaId])
+  @@schema("profesorapp")
 }
 
 model StudentNote {
@@ -288,6 +299,7 @@ model StudentNote {
   @@index([category])
   @@index([isImportant])
   @@index([evaluationId])
+  @@schema("profesorapp")
 }
 
 model Reminder {
@@ -315,6 +327,7 @@ model Reminder {
   @@index([priority])
   @@index([dueDate])
   @@index([completed])
+  @@schema("profesorapp")
 }
 
 // ============================================================
@@ -343,6 +356,7 @@ model AcademicYear {
 
   @@unique([itacaId])
   @@index([status])
+  @@schema("profesorapp")
 }
 
 model Education {
@@ -361,6 +375,7 @@ model Education {
 
   @@unique([itacaId])
   @@index([type])
+  @@schema("profesorapp")
 }
 
 model Course {
@@ -378,6 +393,7 @@ model Course {
 
   @@unique([itacaId])
   @@index([educationId])
+  @@schema("profesorapp")
 }
 
 model ItacaMapping {
@@ -395,6 +411,7 @@ model ItacaMapping {
   @@index([entityType])
   @@index([internalId])
   @@index([itacaId])
+  @@schema("profesorapp")
 }
 
 // ============================================================
@@ -425,6 +442,7 @@ model Enrollment {
   @@index([academicYearId])
   @@index([groupId])
   @@index([itacaId])
+  @@schema("profesorapp")
 }
 
 // ============================================================
@@ -459,6 +477,7 @@ model TeachingContent {
   @@index([educationId])
   @@index([courseId])
   @@index([type])
+  @@schema("profesorapp")
 }
 
 model StudentContentEnrollment {
@@ -479,6 +498,7 @@ model StudentContentEnrollment {
   @@index([contentId])
   @@index([academicYearId])
   @@index([itacaId])
+  @@schema("profesorapp")
 }
 
 model Evaluation {
@@ -511,6 +531,7 @@ model Evaluation {
   @@index([startDate])
   @@index([endDate])
   @@index([createdAt])
+  @@schema("profesorapp")
 }
 
 model Activity {
@@ -538,6 +559,7 @@ model Activity {
   @@index([type])
   @@index([isExtra])
   @@index([createdAt])
+  @@schema("profesorapp")
 }
 
 // ============================================================
@@ -563,6 +585,7 @@ model GradeObservation {
   @@index([contentId])
   @@index([evaluationId])
   @@index([gradeId])
+  @@schema("profesorapp")
 }
 
 model EvaluationObservation {
@@ -580,6 +603,7 @@ model EvaluationObservation {
   @@unique([studentId, evaluationId])
   @@index([studentId])
   @@index([evaluationId])
+  @@schema("profesorapp")
 }
 
 // ============================================================
@@ -618,6 +642,7 @@ model Qualification {
   @@index([isRecovery])
   @@index([numericValue])
   @@index([createdAt])
+  @@schema("profesorapp")
 }
 
 model TargetGrade {
@@ -639,6 +664,7 @@ model TargetGrade {
   @@index([contentId])
   @@index([academicYearId])
   @@index([itacaId])
+  @@schema("profesorapp")
 }
 
 // ============================================================
@@ -661,6 +687,7 @@ model AppAccess {
   @@index([userId])
   @@index([groupId])
   @@index([role])
+  @@schema("profesorapp")
 }
 
 // ============================================================
@@ -692,6 +719,7 @@ model ItacaConfig {
 
   @@index([academicYearId])
   @@index([lastSyncAt])
+  @@schema("profesorapp")
 }
 
 model ItacaPendingSync {
@@ -715,6 +743,7 @@ model ItacaPendingSync {
   @@index([entityType, entityId])
   @@index([status])
   @@index([nextRetryAt])
+  @@schema("profesorapp")
 }
 
 model ItacaImportLog {
@@ -736,6 +765,7 @@ model ItacaImportLog {
   @@index([importType])
   @@index([status])
   @@index([startedAt])
+  @@schema("profesorapp")
 }
 
 model ItacaExportLog {
@@ -756,6 +786,7 @@ model ItacaExportLog {
   @@index([exportType])
   @@index([status])
   @@index([startedAt])
+  @@schema("profesorapp")
 }
 
 model ItacaConflictResolution {
@@ -777,6 +808,7 @@ model ItacaConflictResolution {
   @@index([entityType, entityId])
   @@index([resolution])
   @@index([resolvedAt])
+  @@schema("profesorapp")
 }
 
 model ItacaAuditLog {
@@ -795,6 +827,7 @@ model ItacaAuditLog {
   @@index([action])
   @@index([entityType, entityId])
   @@index([createdAt])
+  @@schema("profesorapp")
 }
 
 // ============================================================
@@ -821,6 +854,7 @@ model AuditLog {
   @@index([action])
   @@index([entityType, entityId])
   @@index([createdAt])
+  @@schema("profesorapp")
 }
 
 model UserAppAccess {
@@ -836,6 +870,7 @@ model UserAppAccess {
   @@index([userId])
   @@index([isActive])
   @@index([lastLoginAt])
+  @@schema("profesorapp")
 }
 
 // ============================================================
@@ -865,6 +900,7 @@ model SchoolData {
 
   @@index([name])
   @@index([code])
+  @@schema("profesorapp")
 }
 
 model AcademicYearData {
@@ -883,6 +919,7 @@ model AcademicYearData {
 
   @@index([schoolDataId])
   @@index([academicYearId])
+  @@schema("profesorapp")
 }
 
 // ============================================================
@@ -917,6 +954,7 @@ model ACImprenta {
   @@index([studentId])
   @@index([academicYearId])
   @@index([documentNumber])
+  @@schema("profesorapp")
 }
 
 model Exigible {
@@ -942,4 +980,5 @@ model Exigible {
   @@index([academicYearId])
   @@index([evaluationId])
   @@index([isCompleted])
+  @@schema("profesorapp")
 }
