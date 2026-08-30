@@ -8,7 +8,7 @@
  * Ejecutar: npx tsx prisma/migrations/phase4_migrate_appaccess.ts
  */
 
-import { PrismaClient } from "../../src/generated/client";
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 

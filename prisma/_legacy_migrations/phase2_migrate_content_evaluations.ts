@@ -11,7 +11,7 @@
  * Ejecutar: npx tsx prisma/migrations/phase2_migrate_content_evaluations.ts
  */
 
-import { PrismaClient } from "../../src/generated/client";
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 

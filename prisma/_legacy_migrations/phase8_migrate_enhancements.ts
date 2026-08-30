@@ -9,7 +9,7 @@
  * Ejecutar: npx tsx prisma/migrations/phase8_migrate_enhancements.ts
  */
 
-import { PrismaClient } from "../../src/generated/client";
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 

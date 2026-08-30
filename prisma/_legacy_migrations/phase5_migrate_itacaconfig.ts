@@ -7,7 +7,7 @@
  * Ejecutar: npx tsx prisma/migrations/phase5_migrate_itacaconfig.ts
  */
 
-import { PrismaClient } from "../../src/generated/client";
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
