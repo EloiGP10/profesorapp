@@ -109,7 +109,7 @@ export default function CalificacionesPage() {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card shadow-sm">
-        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+        <div className="container mx-auto px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="flex items-center gap-3">
             <Link href={`/group/${groupId}`}>
               <Button variant="ghost" size="icon">
@@ -117,15 +117,15 @@ export default function CalificacionesPage() {
               </Button>
             </Link>
             <div>
-              <h1 className="text-xl font-bold">Calificaciones</h1>
+              <h1 className="text-lg sm:text-xl font-bold">Calificaciones</h1>
               <p className="text-xs text-muted-foreground">
-                {group?.name} · Curso {group?.year} · Calculado desde la tabla de notas
+                {group?.name} · Curso {group?.year}
               </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <Select value={selectedTrimester} onValueChange={setSelectedTrimester}>
-              <SelectTrigger className="w-[200px]">
+              <SelectTrigger className="w-full sm:w-[200px]">
                 <SelectValue placeholder="Todos los trimestres" />
               </SelectTrigger>
               <SelectContent>

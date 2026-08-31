@@ -124,11 +124,11 @@ export default function TeachingContentPage() {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card shadow-sm">
-        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+        <div className="container mx-auto px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="flex items-center gap-3">
             <Link href={`/group/${groupId}`}><Button variant="ghost" size="icon"><ArrowLeft className="h-5 w-5" /></Button></Link>
             <div>
-              <h1 className="text-xl font-bold">Contenidos / Materias</h1>
+              <h1 className="text-lg sm:text-xl font-bold">Contenidos / Materias</h1>
               <p className="text-xs text-muted-foreground">{group?.name} · Curso {group?.year}</p>
             </div>
           </div>
@@ -159,7 +159,7 @@ export default function TeachingContentPage() {
                       <CardTitle className="text-lg">{content.name}</CardTitle>
                       {content.code && <p className="text-sm text-muted-foreground">{content.code}</p>}
                     </div>
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex gap-1 sm:opacity-0 sm:group-hover:opacity-100 sm:transition-opacity">
                       <Button variant="ghost" size="icon" onClick={() => openEdit(content)}><Pencil className="h-4 w-4" /></Button>
                       <Button variant="ghost" size="icon" onClick={() => handleDeleteContent(content.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                     </div>
@@ -194,7 +194,7 @@ export default function TeachingContentPage() {
       </main>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>{editing ? "Editar Contenido" : "Nuevo Contenido"}</DialogTitle>
           </DialogHeader>

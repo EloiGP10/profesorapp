@@ -297,7 +297,7 @@ export default function GroupPage() {
 
       {/* Header principal */}
       <header className="border-b bg-card shadow-sm">
-        <div className="container mx-auto px-4 py-3.5 flex items-center justify-between">
+        <div className="container mx-auto px-4 py-3.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="flex items-center gap-3">
             <Link href="/dashboard">
               <Button variant="ghost" size="icon" title="Volver al panel">
@@ -319,38 +319,38 @@ export default function GroupPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
             <Link href={`/dashboard/qualifications/${id}`}>
-              <Button variant="outline" size="sm">
-                <Award className="mr-1.5 h-4 w-4" /> Calificaciones
+              <Button variant="outline" size="sm" className="text-xs sm:text-sm">
+                <Award className="mr-1 h-3.5 w-3.5 sm:h-4 sm:w-4" /> <span className="hidden xs:inline">Calificaciones</span><span className="xs:hidden">Calif.</span>
               </Button>
             </Link>
             <Link href={`/dashboard/evaluations/${id}`}>
-              <Button variant="outline" size="sm">
-                <FileText className="mr-1.5 h-4 w-4" /> Evaluaciones
+              <Button variant="outline" size="sm" className="text-xs sm:text-sm">
+                <FileText className="mr-1 h-3.5 w-3.5 sm:h-4 sm:w-4" /> Eval.
               </Button>
             </Link>
             <Link href={`/dashboard/teaching-content/${id}`}>
-              <Button variant="outline" size="sm">
-                <BookOpen className="mr-1.5 h-4 w-4" /> Contenidos
+              <Button variant="outline" size="sm" className="text-xs sm:text-sm">
+                <BookOpen className="mr-1 h-3.5 w-3.5 sm:h-4 sm:w-4" /> Contenidos
               </Button>
             </Link>
-            <Button variant="outline" size="sm" onClick={toggleStats}>
-              <BarChart3 className="mr-1.5 h-4 w-4" /> Estadísticas
+            <Button variant="outline" size="sm" onClick={toggleStats} className="text-xs sm:text-sm">
+              <BarChart3 className="mr-1 h-3.5 w-3.5 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Estadísticas</span><span className="sm:hidden">Stats</span>
             </Button>
-            <Button variant="outline" size="sm" onClick={() => setDialogReminders(true)}>
-              <Bell className="mr-1.5 h-4 w-4" /> Recordatorios
+            <Button variant="outline" size="sm" onClick={() => setDialogReminders(true)} className="text-xs sm:text-sm">
+              <Bell className="mr-1 h-3.5 w-3.5 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Recordatorios</span><span className="sm:hidden">Avís</span>
             </Button>
-            <Button variant="outline" size="sm" onClick={() => setDialogSettings(true)}>
-              <Settings2 className="mr-1.5 h-4 w-4" /> Ajustes
+            <Button variant="outline" size="sm" onClick={() => setDialogSettings(true)} className="text-xs sm:text-sm">
+              <Settings2 className="mr-1 h-3.5 w-3.5 sm:h-4 sm:w-4" /> Ajustes
             </Button>
             <Link href="/dashboard/settings">
-              <Button variant="ghost" size="sm">
-                <Settings className="mr-1.5 h-4 w-4" /> Config
+              <Button variant="ghost" size="sm" className="text-xs sm:text-sm">
+                <Settings className="mr-1 h-3.5 w-3.5 sm:h-4 sm:w-4" /> Config
               </Button>
             </Link>
-            <Button variant="ghost" size="sm" onClick={() => setDialogProfile(true)} className="flex items-center gap-1.5">
-              <User className="h-4 w-4 text-primary" />
+            <Button variant="ghost" size="sm" onClick={() => setDialogProfile(true)} className="flex items-center gap-1.5 text-xs sm:text-sm">
+              <User className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
               <span className="hidden sm:inline text-xs font-medium">{userName || "Perfil"}</span>
             </Button>
           </div>

@@ -158,7 +158,7 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card shadow-sm">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+        <div className="container mx-auto px-4 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
               <GraduationCap className="h-5 w-5 text-primary-foreground" />
@@ -193,9 +193,9 @@ export default function DashboardPage() {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-8">
           <div>
-            <h2 className="text-2xl font-bold tracking-tight">Mis Grupos</h2>
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight">Mis Grupos</h2>
             <p className="text-sm text-muted-foreground">Gestiona tus clases, alumnos y evaluaciones</p>
           </div>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -298,7 +298,7 @@ export default function DashboardPage() {
                     </div>
                   </CardContent>
                 </Link>
-                <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="absolute top-3 right-3 sm:opacity-0 sm:group-hover:opacity-100 sm:transition-opacity">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button

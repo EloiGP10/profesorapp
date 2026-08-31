@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { Loader2, Save, Building2, Settings } from "lucide-react";
+import { Loader2, Save, Building2, Settings, ArrowLeft } from "lucide-react";
+import Link from "next/link";
 
 interface SchoolData {
   id: string;
@@ -137,10 +138,17 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold">Configuración</h2>
-        <p className="text-muted-foreground">Datos del centro y configuración ITACA</p>
+    <div className="container mx-auto px-4 py-6 space-y-6">
+      <div className="flex items-center gap-3">
+        <Link href="/dashboard">
+          <Button variant="ghost" size="icon">
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+        </Link>
+        <div>
+          <h2 className="text-xl sm:text-2xl font-bold">Configuración</h2>
+          <p className="text-sm text-muted-foreground">Datos del centro y configuración ITACA</p>
+        </div>
       </div>
 
       <Card>
@@ -152,7 +160,7 @@ export default function SettingsPage() {
           <CardDescription>Información general del centro educativo</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="name">Nombre del centro *</Label>
               <Input
@@ -173,7 +181,7 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="address">Dirección</Label>
               <Input
@@ -194,7 +202,7 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             <div>
               <Label htmlFor="province">Provincia</Label>
               <Input
@@ -224,7 +232,7 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             <div>
               <Label htmlFor="phone">Teléfono</Label>
               <Input
@@ -257,7 +265,7 @@ export default function SettingsPage() {
 
           <Separator />
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             <div>
               <Label htmlFor="director">Director/a</Label>
               <Input
@@ -333,7 +341,7 @@ export default function SettingsPage() {
                       )}
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                     <div>
                       <span className="text-muted-foreground">URL:</span> {config.itacaUrl}
                     </div>

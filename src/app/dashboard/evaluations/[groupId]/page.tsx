@@ -152,7 +152,7 @@ export default function EvaluationsPage() {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card shadow-sm">
-        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+        <div className="container mx-auto px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="flex items-center gap-3">
             <Link href={`/group/${groupId}`}>
               <Button variant="ghost" size="icon">
@@ -160,7 +160,7 @@ export default function EvaluationsPage() {
               </Button>
             </Link>
             <div>
-              <h1 className="text-xl font-bold">Evaluaciones</h1>
+              <h1 className="text-lg sm:text-xl font-bold">Evaluaciones</h1>
               <p className="text-xs text-muted-foreground">
                 {group?.name} · Curso {group?.year}
               </p>
@@ -195,7 +195,7 @@ export default function EvaluationsPage() {
                       <CardTitle className="text-lg">{eval_.name}</CardTitle>
                       {eval_.code && <p className="text-sm text-muted-foreground">{eval_.code}</p>}
                     </div>
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex gap-1 sm:opacity-0 sm:group-hover:opacity-100 sm:transition-opacity">
                       <Button variant="ghost" size="icon" onClick={() => openEdit(eval_)}>
                         <Pencil className="h-4 w-4" />
                       </Button>
