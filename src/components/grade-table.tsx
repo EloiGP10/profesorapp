@@ -10,6 +10,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { toast } from "sonner";
+import { colorToCss, parseColorString } from "@/components/color-picker";
 import {
   AlertCircle, CalendarX2, Check, Copy, Info, Loader2, Minus, Pencil, Plus,
   ScrollText, Settings2, Sparkles, Star, Trash2, UserRoundX,
@@ -42,6 +43,7 @@ export interface GradeTableAssessment {
   maxScore: number;
   isExtra: boolean;
   studentId?: string | null;
+  columnColor?: string | null;
 }
 
 export interface GradeTableTrimester {
@@ -579,8 +581,19 @@ export function GradeTable({
               <TableHead className="w-10 text-center font-bold">Nº</TableHead>
               <TableHead className="font-bold">Nombre y apellidos</TableHead>
               <TableHead className="text-center w-10 font-bold">Faltas</TableHead>
-              {currentAssessments.map((assessment) => (
-                <TableHead key={assessment.id} className={compactMode ? "min-w-[60px] text-center px-1" : "min-w-[95px] text-center"}>
+              {currentAssessments.map((assessment) => {
+                const colColor = parseColorString(assessment.columnColor);
+                const colBg = colColor ? colorToCss(colColor, 0.15 + (colColor.intensity / 100) * 0.5) : undefined;
+                const colText = colColor ? (colColor.r * 0.299 + colColor.g * 0.587 + colColor.b * 0.114 > 150 ? "text-black/70" : "text-white/80") : undefined;
+                return (
+                <TableHead
+                  key={assessment.id}
+                  style={colBg ? { backgroundColor: colBg } : undefined}
+                  className={[
+                    compactMode ? "min-w-[60px] text-center px-1" : "min-w-[95px] text-center",
+                    colText,
+                  ].filter(Boolean).join(" ")}
+                >
                   <div className="flex items-center justify-center gap-1">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -643,7 +656,8 @@ export function GradeTable({
                     )}
                   </div>
                 </TableHead>
-              ))}
+                );
+              })}
               <TableHead className="w-12 text-center">
                 <button
                   onClick={() => onAddAssessment(trimester.id)}
@@ -660,11 +674,19 @@ export function GradeTable({
               <TableHead />
               <TableHead />
               <TableHead />
-              {currentAssessments.map((assessment) => (
-                <TableHead key={assessment.id} className="text-center text-[10px] text-muted-foreground">
+              {currentAssessments.map((assessment) => {
+                const colColor = parseColorString(assessment.columnColor);
+                const colBg = colColor ? colorToCss(colColor, 0.08 + (colColor.intensity / 100) * 0.25) : undefined;
+                return (
+                <TableHead
+                  key={assessment.id}
+                  style={colBg ? { backgroundColor: colBg } : undefined}
+                  className="text-center text-[10px] text-muted-foreground"
+                >
                   {assessment.percentage > 0 ? `${assessment.percentage}%` : ""}
                 </TableHead>
-              ))}
+                );
+              })}
               <TableHead />
               <TableHead className="text-center text-[10px] text-muted-foreground font-normal">
                 Total: {currentAssessments.reduce((acc, a) => acc + (a.percentage || 0), 0)}%
@@ -891,8 +913,19 @@ export function GradeTable({
                         (e) => e.assessmentId === assessment.id && e.isExcluded
                       );
 
+                      const colColor = parseColorString(assessment.columnColor);
+                      const colBg = colColor ? colorToCss(colColor, 0.06 + (colColor.intensity / 100) * 0.18) : undefined;
+                      const colLeftBorder = colColor ? `3px solid ${colorToCss(colColor, 0.7 + (colColor.intensity / 100) * 0.3)}` : undefined;
+
                       return (
-                        <TableCell key={cellKey} className={`text-center ${compactMode ? "px-0.5 py-0.5" : "p-1"} ${cellBg}`}>
+                        <TableCell
+                          key={cellKey}
+                          style={{
+                            ...(colBg ? { backgroundColor: colBg } : {}),
+                            ...(colLeftBorder ? { boxShadow: `inset 3px 0 0 ${colColor ? colorToCss(colColor, 0.85) : "transparent"}` } : {}),
+                          }}
+                          className={`text-center ${compactMode ? "px-0.5 py-0.5" : "p-1"} ${cellBg}`}
+                        >
                           {isSaving ? (
                             <Loader2 className="h-4 w-4 animate-spin mx-auto text-muted-foreground" />
                           ) : isEditing ? (

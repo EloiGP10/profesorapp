@@ -11,6 +11,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ColorPicker, parseColorString, colorToString, type ColumnColor } from "@/components/color-picker";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
@@ -29,6 +30,7 @@ interface Assessment {
   percentage: number;
   maxScore: number;
   isExtra: boolean;
+  columnColor?: string | null;
 }
 
 interface AssessmentDialogProps {
@@ -56,6 +58,7 @@ export function AssessmentDialog({
   const [percentage, setPercentage] = useState(10);
   const [maxScore, setMaxScore] = useState(10);
   const [isExtra, setIsExtra] = useState(false);
+  const [color, setColor] = useState<ColumnColor | null>(null);
 
   const getSuggestedName = useCallback(
     (selectedType: string) => {
@@ -76,12 +79,14 @@ export function AssessmentDialog({
       setPercentage(assessment.percentage);
       setMaxScore(assessment.maxScore);
       setIsExtra(assessment.isExtra);
+      setColor(parseColorString(assessment.columnColor));
     } else if (open) {
       setType("EXAM");
       setName(getSuggestedName("EXAM"));
       setPercentage(10);
       setMaxScore(10);
       setIsExtra(false);
+      setColor(null);
     }
   }, [open, assessment, getSuggestedName]);
 
@@ -119,6 +124,7 @@ export function AssessmentDialog({
           percentage: Number(percentage) || 0,
           maxScore: Number(maxScore) || 10,
           isExtra,
+          columnColor: colorToString(color),
         }),
       });
       if (res.ok) {
@@ -135,6 +141,7 @@ export function AssessmentDialog({
             percentage: data.percentage,
             maxScore: data.maxScore,
             isExtra: data.isExtra,
+            columnColor: data.columnColor,
           });
         }
       } else {
@@ -225,6 +232,11 @@ export function AssessmentDialog({
             <Label htmlFor="assessment-extra" className="text-sm">
               Trabajo voluntario (no baja la media)
             </Label>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-sm">Color de columna</Label>
+            <ColorPicker value={color} onChange={setColor} />
           </div>
 
           <Button type="submit" className="w-full" disabled={saving}>

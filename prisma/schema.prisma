@@ -143,6 +143,7 @@ model Assessment {
   maxScore    Float        @default(10)
   isExtra     Boolean      @default(false)
   order       Int          @default(1)
+  columnColor String?
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
   grades      Grade[]
