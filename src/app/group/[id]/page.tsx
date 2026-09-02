@@ -23,7 +23,7 @@ import { ProfileDialog } from "@/components/profile-dialog";
 import { toast } from "sonner";
 import {
   AlertTriangle, ArrowLeft, BarChart3, Bell, FileUp, GraduationCap,
-  Loader2, Plus, Settings2, User, UserPlus, FileText, Award, Settings, BookOpen,
+  Loader2, Plus, Settings2, User, UserPlus, FileText, Award, Settings, BookOpen, Clock,
 } from "lucide-react";
 import type { GradeTableStudent, GradeTableAssessment } from "@/components/grade-table";
 
@@ -333,6 +333,11 @@ export default function GroupPage() {
             <Link href={`/dashboard/teaching-content/${id}`}>
               <Button variant="outline" size="sm" className="text-xs sm:text-sm">
                 <BookOpen className="mr-1 h-3.5 w-3.5 sm:h-4 sm:w-4" /> Contenidos
+              </Button>
+            </Link>
+            <Link href={`/dashboard/schedule/${id}`}>
+              <Button variant="outline" size="sm" className="text-xs sm:text-sm">
+                <Clock className="mr-1 h-3.5 w-3.5 sm:h-4 sm:w-4" /> Horario
               </Button>
             </Link>
             <Button variant="outline" size="sm" onClick={toggleStats} className="text-xs sm:text-sm">

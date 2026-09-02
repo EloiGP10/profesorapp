@@ -4,10 +4,10 @@ import { prisma } from "@/lib/prisma";
 
 function getQualitativeValue(score: number): string | null {
   if (score >= 9) return "SB";
-  if (score >= 7) return "BI";
+  if (score >= 7) return "NT";
+  if (score >= 6) return "BI";
   if (score >= 5) return "SU";
-  if (score >= 3) return "SU-";
-  if (score >= 0) return "INS";
+  if (score >= 0) return "IN";
   return null;
 }
 

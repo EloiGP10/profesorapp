@@ -48,6 +48,7 @@ model Group {
   enrollments     Enrollment[]
   appAccesses     AppAccess[]
   auditLogs       AuditLog[]
+  schedules       Schedule[]
 
   // FASE 0: Jerarquía académica (foreign keys opcionales para compatibilidad)
   academicYearId  String?
@@ -983,5 +984,38 @@ model Exigible {
   @@index([academicYearId])
   @@index([evaluationId])
   @@index([isCompleted])
+  @@schema("profesorapp")
+}
+
+model Schedule {
+  id        String        @id @default(cuid())
+  groupId   String
+  group     Group         @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  name      String        @default("Horario semanal")
+  slots     ScheduleSlot[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@index([groupId])
+  @@schema("profesorapp")
+}
+
+model ScheduleSlot {
+  id          String   @id @default(cuid())
+  scheduleId  String
+  schedule    Schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  day         Int
+  startMinute Int
+  endMinute   Int
+  subject     String
+  classroom   String?
+  teacher     String?
+  color       String?
+  note        String?
+  order       Int      @default(0)
+
+  @@index([scheduleId])
+  @@index([day])
+  @@index([order])
   @@schema("profesorapp")
 }

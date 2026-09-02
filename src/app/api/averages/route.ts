@@ -134,8 +134,8 @@ export async function GET(request: Request) {
 function getQualitative(score: number | null): string | null {
   if (score === null) return null;
   if (score >= 9) return "SB";
-  if (score >= 7) return "BI";
+  if (score >= 7) return "NT";
+  if (score >= 6) return "BI";
   if (score >= 5) return "SU";
-  if (score >= 3) return "SU-";
-  return "INS";
+  return "IN";
 }

@@ -76,10 +76,10 @@ export default function CalificacionesPage() {
   const getQualClass = (qual: string | null) => {
     const colors: Record<string, string> = {
       SB: "bg-green-100 text-green-800",
+      NT: "bg-sky-100 text-sky-800",
       BI: "bg-blue-100 text-blue-800",
       SU: "bg-yellow-100 text-yellow-800",
-      "SU-": "bg-orange-100 text-orange-800",
-      INS: "bg-red-100 text-red-800",
+      IN: "bg-red-100 text-red-800",
     };
     return colors[qual || ""] || "bg-gray-100 text-gray-800";
   };
