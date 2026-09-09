@@ -9,12 +9,10 @@ import { Separator } from "@/components/ui/separator";
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
 import { toast } from "sonner";
 import { FileUp, Loader2, Table2, Upload } from "lucide-react";
 import * as XLSX from "xlsx";
+import { EditableSelect } from "@/components/editable-select";
 
 interface ImportDialogProps {
   open: boolean;
@@ -154,8 +152,7 @@ export function ImportDialog({ open, onOpenChange, groupId }: ImportDialogProps)
   };
 
   const mappingDone = useMemo(() => {
-    const m = Object.values(mapping);
-    return m.includes("name") && m.includes("surname1");
+    return Boolean(mapping.name && mapping.surname1);
   }, [mapping]);
 
   const previewRows = useMemo(() => {
@@ -290,96 +287,100 @@ export function ImportDialog({ open, onOpenChange, groupId }: ImportDialogProps)
                   <Label className="w-28 shrink-0 text-sm">
                     {FIELD_LABELS[field]}{field === "name" || field === "surname1" ? " *" : ""}
                   </Label>
-                  <Select
-                    value={mapping[field] ?? "none"}
-                    onValueChange={(v) =>
+                  <EditableSelect
+                    value={mapping[field] ?? ""}
+                    options={headers}
+                    placeholder="No importar"
+                    onChange={(v) =>
                       setMapping((prev) => ({ ...prev, [field]: v === "none" ? "" : v }))
                     }
-                  >
-                    <SelectTrigger className="flex-1">
-                      <SelectValue placeholder="No importar" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">No importar</SelectItem>
-                      {headers.map((h, i) => (
-                        <SelectItem key={i} value={h}>
-                          {h}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  />
                 </div>
               ))}
             </div>
 
-            {mappingDone && (
-              <>
-                <Separator />
-                <div>
-                  <p className="text-sm font-medium mb-2">
-                    Vista previa ({previewRows.length} alumnos válidos)
-                  </p>
-                  <div className="rounded-lg border overflow-hidden max-h-40 overflow-y-auto">
-                    <table className="w-full text-xs">
-                      <thead className="bg-muted">
-                        <tr>
-                          <th className="text-left px-2 py-1">Nombre</th>
-                          <th className="text-left px-2 py-1">Apellido 1</th>
-                          <th className="text-left px-2 py-1">Apellido 2</th>
-                          {mapping.nia && <th className="text-left px-2 py-1">NIA</th>}
+            <Separator />
+
+            <div>
+              <p className="text-sm font-medium mb-2">
+                Vista previa ({previewRows.length} alumnos válidos)
+              </p>
+              {mappingDone ? (
+                <div className="rounded-lg border overflow-hidden max-h-40 overflow-y-auto">
+                  <table className="w-full text-xs">
+                    <thead className="bg-muted">
+                      <tr>
+                        <th className="text-left px-2 py-1">Nombre</th>
+                        <th className="text-left px-2 py-1">Apellido 1</th>
+                        <th className="text-left px-2 py-1">Apellido 2</th>
+                        {mapping.nia && <th className="text-left px-2 py-1">NIA</th>}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {previewRows.slice(0, 5).map((row, i) => (
+                        <tr key={i} className="border-t">
+                          <td className="px-2 py-1">
+                            {row[Object.keys(mapping).find((k) => mapping[k] === "name")!] ?? ""}
+                          </td>
+                          <td className="px-2 py-1">
+                            {row[Object.keys(mapping).find((k) => mapping[k] === "surname1")!] ?? ""}
+                          </td>
+                          <td className="px-2 py-1">
+                            {mapping.surname2 ? row[Object.keys(mapping).find((k) => mapping[k] === "surname2")!] ?? "" : ""}
+                          </td>
+                          {mapping.nia && (
+                            <td className="px-2 py-1">
+                              {row[Object.keys(mapping).find((k) => mapping[k] === "nia")!] ?? ""}
+                            </td>
+                          )}
                         </tr>
-                      </thead>
-                      <tbody>
-                        {previewRows.slice(0, 5).map((row, i) => (
-                          <tr key={i} className="border-t">
-                            <td className="px-2 py-1">
-                              {row[Object.keys(mapping).find((k) => mapping[k] === "name")!] ?? ""}
-                            </td>
-                            <td className="px-2 py-1">
-                              {row[Object.keys(mapping).find((k) => mapping[k] === "surname1")!] ?? ""}
-                            </td>
-                            <td className="px-2 py-1">
-                              {mapping.surname2 ? row[Object.keys(mapping).find((k) => mapping[k] === "surname2")!] ?? "" : ""}
-                            </td>
-                            {mapping.nia && (
-                              <td className="px-2 py-1">
-                                {row[Object.keys(mapping).find((k) => mapping[k] === "nia")!] ?? ""}
-                              </td>
-                            )}
-                          </tr>
-                        ))}
-                        {previewRows.length > 5 && (
-                          <tr className="border-t">
-                            <td colSpan={4} className="px-2 py-1 text-muted-foreground">
-                              … y {previewRows.length - 5} más
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
+                      ))}
+                      {previewRows.length > 5 && (
+                        <tr className="border-t">
+                          <td colSpan={4} className="px-2 py-1 text-muted-foreground">
+                            … y {previewRows.length - 5} más
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
                 </div>
+              ) : (
+                <p className="text-sm text-muted-foreground rounded-md border border-dashed p-3">
+                  Mapea &#8220;Nombre&#8221; y &#8220;Apellido 1&#8221; para ver la vista previa e importar.
+                </p>
+              )}
+            </div>
 
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="replace-existing"
-                    checked={replaceExisting}
-                    onCheckedChange={(v) => setReplaceExisting(Boolean(v))}
-                  />
-                  <Label htmlFor="replace-existing" className="text-sm">
-                    Reemplazar alumnos existentes (borra la lista actual)
-                  </Label>
-                </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="replace-existing"
+                checked={replaceExisting}
+                onCheckedChange={(v) => setReplaceExisting(Boolean(v))}
+              />
+              <Label htmlFor="replace-existing" className="text-sm">
+                Reemplazar alumnos existentes (borra la lista actual)
+              </Label>
+            </div>
 
-                <Button className="w-full" onClick={handleImport} disabled={importing}>
-                  {importing ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <FileUp className="mr-2 h-4 w-4" />
-                  )}
-                  Importar {previewRows.length} alumnos
-                </Button>
-              </>
+            <Button
+              className="w-full"
+              onClick={handleImport}
+              disabled={importing || !mappingDone || previewRows.length === 0}
+            >
+              {importing ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <FileUp className="mr-2 h-4 w-4" />
+              )}
+              Importar {previewRows.length} alumnos
+            </Button>
+
+            {!mappingDone && (
+              <p className="text-xs text-muted-foreground">
+                {mapping.name ? "" : "Falta mapear Nombre. "}
+                {mapping.surname1 ? "" : "Falta mapear Apellido 1."}
+              </p>
             )}
           </div>
         )}
