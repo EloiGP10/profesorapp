@@ -112,9 +112,10 @@ export function ImportDialog({ open, onOpenChange, groupId }: ImportDialogProps)
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
-        const wb = XLSX.read(e.target?.result, { type: "binary" });
+        const data = new Uint8Array(e.target?.result as ArrayBuffer);
+        const wb = XLSX.read(data, { type: "array" });
         const ws = wb.Sheets[wb.SheetNames[0]];
-        const matrix: string[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
+        const matrix: string[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "", blankrows: false });
         if (matrix.length === 0) {
           toast.error("El archivo está vacío");
           return;
@@ -123,18 +124,28 @@ export function ImportDialog({ open, onOpenChange, groupId }: ImportDialogProps)
         const cleanHeaders = headerRow.map((h) => String(h).trim() || `Columna ${headerRow.indexOf(h) + 1}`);
         setHeaders(cleanHeaders);
         const dataRows = hasHeaderRow ? matrix.slice(1) : matrix;
+        const headerSet = new Set(cleanHeaders.map((h) => h.toLowerCase()));
         setParsedRows(
-          dataRows.map((row) => {
-            const obj: Record<string, string> = {};
-            cleanHeaders.forEach((h, i) => {
-              const key = String(h).trim() || `col${i}`;
-              obj[key] = String(row[i] ?? "").trim();
-            });
-            return obj;
-          })
+          dataRows
+            .filter((row) => row.some((cell) => cell !== "" && cell != null))
+            .filter((row) => {
+              const nonEmpty = row.filter((cell) => cell !== "" && cell != null);
+              if (nonEmpty.length <= 1) return false;
+              const rowVals = row.map((cell) => String(cell ?? "").trim().toLowerCase());
+              const matchCount = rowVals.filter((v) => headerSet.has(v)).length;
+              if (matchCount >= Math.ceil(cleanHeaders.length * 0.5)) return false;
+              return true;
+            })
+            .map((row) => {
+              const obj: Record<string, string> = {};
+              cleanHeaders.forEach((h, i) => {
+                const key = String(h).trim() || `col${i}`;
+                obj[key] = String(row[i] ?? "").trim();
+              });
+              return obj;
+            })
         );
 
-        // Auto-detect column mapping
         const detected = autoDetectMapping(cleanHeaders);
         setMapping(detected);
         const matched = Object.keys(detected).length;
@@ -148,7 +159,7 @@ export function ImportDialog({ open, onOpenChange, groupId }: ImportDialogProps)
         toast.error("Error al leer el archivo. Asegúrate de que sea un .xlsx válido");
       }
     };
-    reader.readAsBinaryString(file);
+    reader.readAsArrayBuffer(file);
   };
 
   const mappingDone = useMemo(() => {
@@ -157,10 +168,16 @@ export function ImportDialog({ open, onOpenChange, groupId }: ImportDialogProps)
 
   const previewRows = useMemo(() => {
     if (!mappingDone) return [];
+    const nameHeader = mapping.name;
+    const surnameHeader = mapping.surname1;
+    if (!nameHeader || !surnameHeader) return [];
     return parsedRows.filter((row) => {
-      const nameKey = Object.keys(mapping).find((k) => mapping[k] === "name")!;
-      const surnameKey = Object.keys(mapping).find((k) => mapping[k] === "surname1")!;
-      return String(row[nameKey] || "").trim() && String(row[surnameKey] || "").trim();
+      const nameVal = String(row[nameHeader] || "").trim();
+      const surnameVal = String(row[surnameHeader] || "").trim();
+      if (!nameVal || !surnameVal) return false;
+      if (nameHeader && nameVal.toLowerCase() === nameHeader.toLowerCase()) return false;
+      if (surnameHeader && surnameVal.toLowerCase() === surnameHeader.toLowerCase()) return false;
+      return true;
     });
   }, [mappingDone, parsedRows, mapping]);
 
@@ -169,10 +186,7 @@ export function ImportDialog({ open, onOpenChange, groupId }: ImportDialogProps)
     setImporting(true);
     try {
       const students: RowData[] = previewRows.map((row) => {
-        const get = (field: string) =>
-          Object.keys(mapping).find((k) => mapping[k] === field)
-            ? row[Object.keys(mapping).find((k) => mapping[k] === field)!] ?? ""
-            : "";
+        const get = (field: string) => mapping[field] ? row[mapping[field]] ?? "" : "";
         return {
           listNumber: get("listNumber") ? Number(get("listNumber")) || null : null,
           name: get("name"),
@@ -319,20 +333,20 @@ export function ImportDialog({ open, onOpenChange, groupId }: ImportDialogProps)
                     <tbody>
                       {previewRows.slice(0, 5).map((row, i) => (
                         <tr key={i} className="border-t">
+                        <td className="px-2 py-1">
+                          {mapping.name ? row[mapping.name] ?? "" : ""}
+                        </td>
+                        <td className="px-2 py-1">
+                          {mapping.surname1 ? row[mapping.surname1] ?? "" : ""}
+                        </td>
+                        <td className="px-2 py-1">
+                          {mapping.surname2 ? row[mapping.surname2] ?? "" : ""}
+                        </td>
+                        {mapping.nia && (
                           <td className="px-2 py-1">
-                            {row[Object.keys(mapping).find((k) => mapping[k] === "name")!] ?? ""}
+                            {row[mapping.nia] ?? ""}
                           </td>
-                          <td className="px-2 py-1">
-                            {row[Object.keys(mapping).find((k) => mapping[k] === "surname1")!] ?? ""}
-                          </td>
-                          <td className="px-2 py-1">
-                            {mapping.surname2 ? row[Object.keys(mapping).find((k) => mapping[k] === "surname2")!] ?? "" : ""}
-                          </td>
-                          {mapping.nia && (
-                            <td className="px-2 py-1">
-                              {row[Object.keys(mapping).find((k) => mapping[k] === "nia")!] ?? ""}
-                            </td>
-                          )}
+                        )}
                         </tr>
                       ))}
                       {previewRows.length > 5 && (
