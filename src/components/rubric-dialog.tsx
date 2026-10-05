@@ -10,7 +10,7 @@ import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Loader2, Plus, Trash2 } from "lucide-react";
+import { Loader2, Percent, Plus, Trash2 } from "lucide-react";
 
 interface RubricRowDraft {
   id?: string;
@@ -77,6 +77,17 @@ export function RubricDialog({ open, onOpenChange, assessmentId, assessmentName,
 
   const removeRow = (idx: number) => {
     setRows((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const splitEvenly = () => {
+    setRows((prev) => {
+      if (prev.length === 0) return prev;
+      const n = prev.length;
+      const each = Math.floor((100 / n) * 100) / 100;
+      const last = Number((100 - each * (n - 1)).toFixed(2));
+      return prev.map((r, i) => ({ ...r, percentage: i === n - 1 ? last : each }));
+    });
+    toast.success("Porcentajes repartidos equitativamente");
   };
 
   const totalPct = rows.reduce((sum, r) => sum + (Number(r.percentage) || 0), 0);
@@ -203,10 +214,22 @@ export function RubricDialog({ open, onOpenChange, assessmentId, assessmentName,
             </table>
           </div>
 
-          <Button type="button" variant="outline" size="sm" onClick={addRow}>
-            <Plus className="mr-2 h-4 w-4" />
-            Añadir criterio
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" variant="outline" size="sm" onClick={addRow}>
+              <Plus className="mr-2 h-4 w-4" />
+              Añadir criterio
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={splitEvenly}
+              disabled={rows.length === 0}
+            >
+              <Percent className="mr-2 h-4 w-4" />
+              Repartir equitativamente
+            </Button>
+          </div>
 
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">Suma de porcentajes</span>
