@@ -33,6 +33,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Trimestre de destino no válido" }, { status: 403 });
     }
 
+    // Si el destino es de otro grupo, no arrastrar evaluaciones personales de alumnos
+    const [sourceTrimester, targetTrimester] = await Promise.all([
+      prisma.trimester.findUnique({ where: { id: source.trimesterId }, select: { groupId: true } }),
+      prisma.trimester.findUnique({ where: { id: trimesterId }, select: { groupId: true } }),
+    ]);
+    const sameGroup = sourceTrimester?.groupId === targetTrimester?.groupId;
+
     const count = await prisma.assessment.count({ where: { trimesterId } });
 
     const newAssessment = await prisma.assessment.create({
@@ -43,7 +50,8 @@ export async function POST(request: Request) {
         percentage: source.percentage,
         maxScore: source.maxScore,
         isExtra: source.isExtra,
-        studentId: source.studentId,
+        studentId: sameGroup ? source.studentId : null,
+        columnColor: source.columnColor,
         order: count + 1,
         rubric: source.rubric
           ? {

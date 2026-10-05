@@ -12,7 +12,7 @@ import {
 import { toast } from "sonner";
 import { colorToCss, parseColorString } from "@/components/color-picker";
 import {
-  AlertCircle, CalendarX2, Check, Copy, Info, Loader2, Minus, Pencil, Plus,
+  AlertCircle, CalendarX2, Check, ClipboardCopy, Copy, Info, Loader2, Minus, Pencil, Plus,
   ScrollText, Settings2, Sparkles, Star, Trash2, UserRoundX,
 } from "lucide-react";
 
@@ -66,6 +66,7 @@ interface GradeTableProps {
   onEditAssessment: (assessment: GradeTableAssessment) => void;
   onOpenRubric: (assessment: GradeTableAssessment, hasRubric: boolean) => void;
   onOpenRubricEval?: (assessment: GradeTableAssessment, studentId?: string) => void;
+  onCopyAssessment?: (assessment: GradeTableAssessment) => void;
   onOpenNotes: (studentId: string) => void;
   onEditStudent: (studentId: string) => void;
   onOpenException: (studentId: string, studentName: string) => void;
@@ -105,6 +106,7 @@ export function GradeTable({
   onEditAssessment,
   onOpenRubric,
   onOpenRubricEval,
+  onCopyAssessment,
   onOpenNotes,
   onEditStudent,
   onOpenException,
@@ -630,6 +632,12 @@ export function GradeTable({
                           )}
                           Duplicar evaluación
                         </DropdownMenuItem>
+                        {onCopyAssessment && (
+                          <DropdownMenuItem onClick={() => onCopyAssessment(assessment)}>
+                            <ClipboardCopy className="mr-2 h-4 w-4 text-primary" />
+                            Copiar a otro grupo
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem
                           className="text-destructive"
                           disabled={deletingAssessmentId === assessment.id}

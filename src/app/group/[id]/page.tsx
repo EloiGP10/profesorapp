@@ -18,6 +18,7 @@ import { RubricEvalDialog, type RubricEvalAssessment } from "@/components/rubric
 import { ExceptionDialog } from "@/components/exception-dialog";
 import { AbsenceDialog } from "@/components/absence-dialog";
 import { ImportDialog } from "@/components/import-dialog";
+import { CopyAssessmentDialog, type CopyAssessmentSource } from "@/components/copy-assessment-dialog";
 import { ExportDialog } from "@/components/export-dialog";
 import { ProfileDialog } from "@/components/profile-dialog";
 import { toast } from "sonner";
@@ -94,6 +95,7 @@ export default function GroupPage() {
   const [dialogGrade, setDialogGrade] = useState<null | { open: boolean; trimesterId: string; assessment?: AssessmentFull | null }>(null);
   const [dialogRubric, setDialogRubric] = useState<null | { open: boolean; assessment: AssessmentFull }>(null);
   const [dialogRubricEval, setDialogRubricEval] = useState<null | { open: boolean; assessment: RubricEvalAssessment | null; studentId?: string | null }>(null);
+  const [dialogCopy, setDialogCopy] = useState<null | { open: boolean; assessment: CopyAssessmentSource }>(null);
   const [dialogException, setDialogException] = useState<null | { open: boolean; studentId: string; studentName: string }>(null);
   const [dialogAbsence, setDialogAbsence] = useState<null | { open: boolean; studentId: string; studentName: string; absences: { id: string; date: string; type: string; notes: string | null; trimesterId: string | null }[] }>(null);
   const [statsActive, setStatsActive] = useState(false);
@@ -223,6 +225,24 @@ export default function GroupPage() {
 
   const openRubric = (assessment: AssessmentFull) => {
     setDialogRubric({ open: true, assessment });
+  };
+
+  const handleCopyAssessment = (assessment: GradeTableAssessment) => {
+    const full = (group?.trimesters ?? [])
+      .flatMap((t) => t.assessments)
+      .find((a) => a.id === assessment.id);
+    setDialogCopy({
+      open: true,
+      assessment: {
+        id: assessment.id,
+        name: assessment.name,
+        type: assessment.type,
+        percentage: assessment.percentage,
+        maxScore: assessment.maxScore,
+        studentId: assessment.studentId ?? null,
+        hasRubric: !!full?.rubric,
+      },
+    });
   };
 
   const handleOpenRubricEval = (assessment: GradeTableAssessment, studentId?: string) => {
@@ -399,6 +419,7 @@ export default function GroupPage() {
           onEditAssessment={handleEditAssessment}
           onOpenRubric={openRubric}
           onOpenRubricEval={handleOpenRubricEval}
+          onCopyAssessment={handleCopyAssessment}
           onOpenNotes={handleOpenNotes}
           onEditStudent={handleEditStudent}
           onOpenException={handleOpenException}
@@ -525,6 +546,15 @@ export default function GroupPage() {
         trimesters={group.trimesters.map((t) => ({ id: t.id, name: t.name }))}
         absences={dialogAbsence?.absences ?? []}
         onSaved={loadGroup}
+      />
+
+      <CopyAssessmentDialog
+        open={dialogCopy?.open ?? false}
+        onOpenChange={(o) => setDialogCopy((prev) => (prev ? { ...prev, open: o } : prev))}
+        assessment={dialogCopy?.assessment ?? null}
+        sourceGroupId={group.id}
+        sourceTrimesterId={activeTrimester.id}
+        onCopied={loadGroup}
       />
 
       <ImportDialog
