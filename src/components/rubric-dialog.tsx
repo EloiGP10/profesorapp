@@ -15,12 +15,19 @@ import { Loader2, Plus, Trash2 } from "lucide-react";
 interface RubricRowDraft {
   id?: string;
   title: string;
-  percentage: number;
+  percentage: number | string;
   poorText: string;
   fairText: string;
   goodText: string;
   excellentText: string;
 }
+
+const LEVEL_COLUMNS = [
+  { field: "poorText", label: "Mal" },
+  { field: "fairText", label: "Regular" },
+  { field: "goodText", label: "Bien" },
+  { field: "excellentText", label: "Genial" },
+] as const;
 
 interface RubricDialogProps {
   open: boolean;
@@ -133,12 +140,12 @@ export function RubricDialog({ open, onOpenChange, assessmentId, assessmentName,
               <thead>
                 <tr className="border-b">
                   <th className="text-left py-2 pr-2 font-medium">Criterio</th>
-                  {["poor", "fair", "good", "excellent"].map((level) => (
-                    <th key={level} className="py-2 px-2 font-medium whitespace-nowrap capitalize">
-                      {level}
+                  {LEVEL_COLUMNS.map(({ field, label }) => (
+                    <th key={field} className="py-2 px-2 font-medium whitespace-nowrap">
+                      {label}
                     </th>
                   ))}
-                  <th className="py-2 pl-2 font-medium whitespace-nowrap">%</th>
+                  <th className="py-2 pl-2 font-medium whitespace-nowrap">% del total</th>
                   <th className="w-8" />
                 </tr>
               </thead>
@@ -152,8 +159,8 @@ export function RubricDialog({ open, onOpenChange, assessmentId, assessmentName,
                         className="text-sm"
                       />
                     </td>
-                    {(["poorText", "fairText", "goodText", "excellentText"] as const).map((field) => (
-                      <td key={field} className="py-2 px-1 min-w-[110px]">
+                    {LEVEL_COLUMNS.map(({ field }) => (
+                      <td key={field} className="py-2 px-1 min-w-[100px]">
                         <Textarea
                           value={row[field]}
                           onChange={(e) => updateRow(idx, field, e.target.value)}
@@ -162,14 +169,21 @@ export function RubricDialog({ open, onOpenChange, assessmentId, assessmentName,
                         />
                       </td>
                     ))}
-                    <td className="py-2 pl-2 w-20">
-                      <Input
-                        type="number"
-                        min={0}
-                        value={row.percentage}
-                        onChange={(e) => updateRow(idx, "percentage", Number(e.target.value))}
-                        className="text-sm"
-                      />
+                    <td className="py-2 pl-2 w-28">
+                      <div className="flex items-center gap-1 rounded-md border border-input bg-background px-2 shadow-sm focus-within:ring-1 focus-within:ring-ring">
+                        <Input
+                          type="number"
+                          min={0}
+                          max={100}
+                          value={row.percentage}
+                          onChange={(e) =>
+                            updateRow(idx, "percentage", e.target.value === "" ? "" : Number(e.target.value))
+                          }
+                          aria-label={`Porcentaje del criterio ${row.title || idx + 1}`}
+                          className="h-9 w-14 border-0 bg-transparent px-1 text-center text-sm font-semibold shadow-none focus-visible:ring-0"
+                        />
+                        <span className="text-sm font-semibold text-muted-foreground">%</span>
+                      </div>
                     </td>
                     <td className="py-2 px-1">
                       <Button
