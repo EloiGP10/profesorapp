@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,7 +14,6 @@ import {
 import {
   countAbsences,
   studentFinalAverage,
-  trimesterAverage,
 } from "@/lib/student-stats";
 
 interface FamilyReportStudent {
@@ -34,23 +33,27 @@ function fmt(n: number | null, digits = 1) {
   return n === null ? "—" : n.toFixed(digits);
 }
 
-export default function FamilyReportPage(
-  {
-    studentId,
-  }: { studentId: string }
-) {
+export default function FamilyReportPage({
+  params,
+}: {
+  params: { studentId: string };
+}) {
+  const studentId = params.studentId;
+  const router = useRouter();
+
   const [student, setStudent] = useState<FamilyReportStudent | null>(null);
-  const [trimesters, setTrimesters] = useState<Array<{ id: string; name: string; percentage: number; assessments: any[] }>>([]);
+  const [trimesters, setTrimesters] = useState<
+    Array<{
+      id: string;
+      name: string;
+      percentage: number;
+      assessments: any[];
+    }>
+  >([]);
   const [annotations, setAnnotations] = useState<any>({});
-const routerRef = useRouter();
-  const toast = (msg: string) => {
-  // sonner toast
-  alert(msg);
-};
 
   useEffect(() => {
     async function loadData() {
-      // Cargar datos del alumno
       const studentRes = await fetch(
         `/api/students/profile?studentId=${studentId}`,
         { cache: "no-store" }
@@ -60,15 +63,19 @@ const routerRef = useRouter();
         setStudent(s);
       }
 
-      // Cargar trimestres
-      const trimRes = await fetch(`/api/trimesters/family?studentId=${studentId}`, { cache: "no-store" });
+      const trimRes = await fetch(
+        `/api/trimesters/family?studentId=${studentId}`,
+        { cache: "no-store" }
+      );
       if (trimRes.ok) {
         const t = await trimRes.json();
         setTrimesters(t);
       }
 
-      // Cargar anotaciones
-      const annRes = await fetch(`/api/reports/annotations?studentId=${studentId}`, { cache: "no-store" });
+      const annRes = await fetch(
+        `/api/reports/annotations?studentId=${studentId}`,
+        { cache: "no-store" }
+      );
       if (annRes.ok) {
         const a = await annRes.json();
         setAnnotations(a.annotations || {});
@@ -82,22 +89,21 @@ const routerRef = useRouter();
     return <div className="p-8 text-center">Cargando alumno...</div>;
   }
 
-  // Datos para el gráfico
-  const chartData = useMemo(() => {
-    return trimesters.map((t) => {
-      const allAssessments = t.assessments.flatMap((a: any) => [
-        { name: a.name, maxScore: a.maxScore, score: a.score }
-      ]);
-      const graded = allAssessments.filter((a: any) => a.score !== null);
-      const avg = graded.length > 0
+  // Datos para el gráfico (calculado directamente, sin useMemo para evitar reglas de hooks)
+  const chartData = trimesters.map((t) => {
+    const allAssessments = t.assessments.flatMap((a: any) => [
+      { name: a.name, maxScore: a.maxScore, score: a.score },
+    ]);
+    const graded = allAssessments.filter((a: any) => a.score !== null);
+    const avg =
+      graded.length > 0
         ? graded.reduce((sum: number, a: any) => sum + a.score, 0) / graded.length
         : null;
-      return {
-        name: t.name.replace("Trimestre", "T"),
-        Alumno: avg !== null ? Number(avg.toFixed(2)) : null,
-      };
-    });
-  }, [trimesters]);
+    return {
+      name: t.name.replace("Trimestre", "T"),
+      Alumno: avg !== null ? Number(avg.toFixed(2)) : null,
+    };
+  });
 
   return (
     <div className="min-h-screen bg-background p-4">
@@ -105,7 +111,9 @@ const routerRef = useRouter();
         <h1 className="text-2xl font-bold mb-6">Informes — {fullName(student)}</h1>
 
         <div className="mb-6">
-          <p className="text-sm text-muted-foreground">Nº {student.listNumber}{student.nia ? ` · NIA ${student.nia}` : ""} · Grupo</p>
+          <p className="text-sm text-muted-foreground">
+            Nº {student.listNumber}{student.nia ? ` · NIA ${student.nia}` : ""} · Grupo
+          </p>
         </div>
 
         {/* Resumen de anotaciones del profesor */}
@@ -116,7 +124,9 @@ const routerRef = useRouter();
               {Object.entries(annotations).map(([trimesterKey, text]) => (
                 <div key={trimesterKey} className="p-3 rounded bg-white">
                   <p className="font-medium text-sm">{trimesterKey}</p>
-                  <p className="text-truncate whitespace-pre-wrap">{text || "—"}</p>
+                  <p className="text-truncate whitespace-pre-wrap">
+                    {(text || "--") as string}
+                  </p>
                 </div>
               ))}
             </div>
@@ -182,7 +192,15 @@ const routerRef = useRouter();
         {/* Media final */}
         <div className="mt-6 p-4 rounded-lg border bg-muted/30">
           <p className="font-medium text-lg">Media final</p>
-          <p className="text-3xl font-bold mt-2">{fmt(studentFinalAverage(student as any, trimesters as any, { absence: 0, late: 0, negative: 0 }))}</p>
+          <p className="text-3xl font-bold mt-2">
+            {fmt(
+              studentFinalAverage(student as any, trimesters as any, {
+                absence: 0,
+                late: 0,
+                negative: 0,
+              }))
+            }
+          </p>
         </div>
 
         {/* Faltas */}
