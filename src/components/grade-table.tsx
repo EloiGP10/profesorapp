@@ -126,7 +126,6 @@ export function GradeTable({
   onOpenAbsence,
   onDataChange,
 }: GradeTableProps) {
-  console.log('GradeTable props:', { onOpenReport, onOpenProgress, onOpenFamily, onOpenNotes });
   const [editingCell, setEditingCell] = useState<{ studentId: string; assessmentId: string } | null>(null);
   const [editValue, setEditValue] = useState("");
   const [savingCell, setSavingCell] = useState<{ studentId: string; assessmentId: string } | null>(null);
@@ -826,6 +825,11 @@ export function GradeTable({
                               {onOpenProgress && (
                                 <DropdownMenuItem onClick={() => onOpenProgress(student.id)}>
                                   <TrendingUp className="mr-2 h-4 w-4" /> Evolución del alumno
+                                </DropdownMenuItem>
+                              )}
+                              {onOpenFamily && (
+                                <DropdownMenuItem onClick={() => onOpenFamily(student.id)}>
+                                  <Users className="mr-2 h-4 w-4" /> Informes para familia
                                 </DropdownMenuItem>
                               )}
                               <DropdownMenuItem
