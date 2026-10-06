@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
@@ -59,31 +59,35 @@ export function FamilyReportDialog({
   const [commentTexts, setCommentTexts] = useState<any>(({} as any));
   const [expandedTrims, setExpandedTrims] = useState<string[]>([]);
 
-  // Cargar anotaciones existentes al montar
-  useMemo(() => {
-    if (!student?.id) return;
-    async function loadAnnotations() {
+  // Cargar anotaciones existentes al abrir el diálogo
+  useEffect(() => {
+    if (!open || !student?.id) return;
+    let cancelled = false;
+    (async () => {
       try {
         const res = await fetch(`/api/reports/annotations?studentId=${student.id}`, {
           cache: "no-store",
         });
-        if (res.ok) {
-          const data = await res.json();
-          setAnnotations(data.annotations || {});
-          // Inicializar commentTexts con los valores guardados
-          const initial: any = {};
-          TRIMESTER_KEYS.forEach((key) => {
-            initial[key] = annotations[key] || "";
-          });
-          initial.firma = annotations.firma || "";
-          setCommentTexts(initial);
-        }
-      } catch (e) {
-        toast.error("Error al cargar anotaciones");
+        if (!res.ok) return;
+        const data = await res.json();
+        const loaded: any = data.annotations || {};
+        if (cancelled) return;
+        setAnnotations(loaded);
+        const initial: any = {};
+        TRIMESTER_KEYS.forEach((key) => {
+          initial[key] = loaded[key] || "";
+        });
+        initial.firma = loaded.firma || "";
+        setCommentTexts(initial);
+        setExpandedTrims([]);
+      } catch {
+        toast.error("Error al cargar las observaciones");
       }
-    }
-    loadAnnotations();
-  }, [student?.id]);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, student?.id]);
 
   // Guardar anotaciones
   const saveAnnotations = async (newAnnotations: any) => {
@@ -426,11 +430,19 @@ export function FamilyReportDialog({
             <style>{`
               @media print {
                 body * { visibility: hidden !important; }
-                .print-report, .print-report * { visibility: visible !important; }
+                .print-report,
+                .print-report * {
+                  visibility: visible !important;
+                  display: revert !important;
+                }
                 .print-report {
+                  display: block !important;
                   position: absolute;
                   left: 0; top: 0; width: 100%;
                   padding: 0; margin: 0;
+                  overflow: visible !important;
+                  height: auto !important;
+                  max-height: none !important;
                   background: #fff; color: #000;
                 }
                 @page { size: A4; margin: 14mm; }

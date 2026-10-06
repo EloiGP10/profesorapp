@@ -1,226 +1,286 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog";
-import { FileSpreadsheet, Printer } from "lucide-react";
-import * as XLSX from "xlsx";
-import {
-  CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
-} from "recharts";
+import { notFound } from "next/navigation";
+import { prisma } from "@/lib/prisma";
+import { PrintButton } from "@/components/print-button";
 import {
   countAbsences,
-  studentFinalAverage,
+  getStudentPenalty,
+  trimesterAverage,
+  type StatPenalties,
+  type StatStudent,
+  type StatTrimester,
 } from "@/lib/student-stats";
 
-interface FamilyReportStudent {
-  id: string;
+export const dynamic = "force-dynamic";
+
+const CATEGORY = "FAMILY_REPORT";
+
+function fullName(s: {
   name: string;
   surname1: string;
   surname2: string | null;
-  listNumber: number;
-  nia: string | null;
-}
-
-function fullName(s: FamilyReportStudent) {
+}) {
   return `${s.name} ${s.surname1}${s.surname2 ? ` ${s.surname2}` : ""}`;
 }
 
-function fmt(n: number | null, digits = 1) {
+function fmt(n: number | null, digits = 2) {
   return n === null ? "—" : n.toFixed(digits);
 }
 
-export default function FamilyReportPage({
+function parseAnnotations(content: string | null): Record<string, string> {
+  if (!content) return {};
+  try {
+    const parsed = JSON.parse(content);
+    return parsed && typeof parsed === "object" ? (parsed as Record<string, string>) : {};
+  } catch {
+    return {};
+  }
+}
+
+export default async function FamilyReportPage({
   params,
 }: {
   params: { studentId: string };
 }) {
-  const studentId = params.studentId;
-  const router = useRouter();
+  const student = await prisma.student.findUnique({
+    where: { id: params.studentId },
+    include: {
+      group: {
+        include: {
+          trimesters: {
+            orderBy: { order: "asc" },
+            include: {
+              assessments: { orderBy: { order: "asc" } },
+            },
+          },
+        },
+      },
+      grades: { select: { assessmentId: true, score: true } },
+      absences: { select: { type: true, trimesterId: true } },
+      exceptions: { select: { assessmentId: true, isExcluded: true } },
+      notes: { where: { category: CATEGORY }, select: { content: true }, take: 1 },
+    },
+  });
 
-  const [student, setStudent] = useState<FamilyReportStudent | null>(null);
-  const [trimesters, setTrimesters] = useState<
-    Array<{
-      id: string;
-      name: string;
-      percentage: number;
-      assessments: any[];
-    }>
-  >([]);
-  const [annotations, setAnnotations] = useState<any>({});
+  if (!student) notFound();
 
-  useEffect(() => {
-    async function loadData() {
-      const studentRes = await fetch(
-        `/api/students/profile?studentId=${studentId}`,
-        { cache: "no-store" }
-      );
-      if (studentRes.ok) {
-        const s = await studentRes.json() as FamilyReportStudent;
-        setStudent(s);
-      }
+  const annotations = parseAnnotations(student.notes[0]?.content ?? null);
 
-      const trimRes = await fetch(
-        `/api/trimesters/family?studentId=${studentId}`,
-        { cache: "no-store" }
-      );
-      if (trimRes.ok) {
-        const t = await trimRes.json();
-        setTrimesters(t);
-      }
+  const statStudent: StatStudent = {
+    id: student.id,
+    grades: student.grades,
+    absences: student.absences,
+    exceptions: student.exceptions,
+  };
 
-      const annRes = await fetch(
-        `/api/reports/annotations?studentId=${studentId}`,
-        { cache: "no-store" }
-      );
-      if (annRes.ok) {
-        const a = await annRes.json();
-        setAnnotations(a.annotations || {});
-      }
-    }
+  const penalties: StatPenalties = {
+    absence: student.group.penaltyAbsence,
+    late: student.group.penaltyLate,
+    negative: student.group.penaltyNegative,
+  };
 
-    loadData();
-  }, [studentId]);
+  const statTrimesters: StatTrimester[] = student.group.trimesters.map((t) => ({
+    id: t.id,
+    percentage: t.percentage,
+    assessments: t.assessments.map((a) => ({
+      id: a.id,
+      percentage: a.percentage,
+      maxScore: a.maxScore,
+      isExtra: a.isExtra,
+      studentId: a.studentId,
+    })),
+  }));
 
-  if (!student) {
-    return <div className="p-8 text-center">Cargando alumno...</div>;
-  }
+  const nameById = new Map(
+    student.group.trimesters.flatMap((t) =>
+      t.assessments.map((a) => [a.id, a] as const)
+    )
+  );
 
-  // Datos para el gráfico (calculado directamente, sin useMemo para evitar reglas de hooks)
-  const chartData = trimesters.map((t) => {
-    const allAssessments = t.assessments.flatMap((a: any) => [
-      { name: a.name, maxScore: a.maxScore, score: a.score },
-    ]);
-    const graded = allAssessments.filter((a: any) => a.score !== null);
-    const avg =
-      graded.length > 0
-        ? graded.reduce((sum: number, a: any) => sum + a.score, 0) / graded.length
-        : null;
+  const rows = student.group.trimesters.map((t, i) => {
+    const st = statTrimesters[i];
+    const items = st.assessments
+      .filter(
+        (a) =>
+          (!a.isExtra && !a.studentId) ||
+          (!a.isExtra && a.studentId === student.id)
+      )
+      .filter(
+        (a) =>
+          !student.exceptions.find((e) => e.assessmentId === a.id && e.isExcluded)
+      )
+      .map((a) => {
+        const full = nameById.get(a.id);
+        const grade = student.grades.find((g) => g.assessmentId === a.id);
+        return {
+          id: a.id,
+          name: full?.name ?? "",
+          type: full?.type ?? "",
+          percentage: a.percentage,
+          maxScore: a.maxScore,
+          isPersonal: !!a.studentId,
+          score: grade?.score ?? null,
+        };
+      });
+
     return {
-      name: t.name.replace("Trimestre", "T"),
-      Alumno: avg !== null ? Number(avg.toFixed(2)) : null,
+      id: t.id,
+      name: t.name,
+      percentage: t.percentage,
+      items,
+      average: trimesterAverage(statStudent, st, penalties),
+      absences: countAbsences(statStudent, t.id),
+      penalty: getStudentPenalty(statStudent, t.id, penalties),
     };
   });
 
+  let weighted = 0;
+  let totalWeight = 0;
+  rows.forEach((r) => {
+    if (r.average === null) return;
+    weighted += r.average * (r.percentage || 0);
+    totalWeight += r.percentage || 0;
+  });
+  const finalAverage = totalWeight > 0 ? weighted / totalWeight : null;
+
+  const chartPoints = rows.filter((r) => r.average !== null);
+  const annotationKeys = Object.keys(annotations).filter(
+    (k) => k !== "firma" && annotations[k]?.trim()
+  );
+
   return (
-    <div className="min-h-screen bg-background p-4">
-      <div className="max-w-4xl mx-auto">
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-6 no-print">
+    <div className="min-h-screen bg-background p-4 print:p-0">
+      <div className="mx-auto max-w-4xl print:max-w-none">
+        <div className="no-print mb-6 flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-muted/40 px-3 py-2">
           <p className="text-xs text-muted-foreground">
             Enlace personal e intransferible. Los datos se actualizan automáticamente.
           </p>
-          <Button variant="outline" size="sm" onClick={() => window.print()}>
-            Imprimir / Guardar PDF
-          </Button>
+          <PrintButton />
         </div>
 
-        <h1 className="text-2xl font-bold mb-6">Informes — {fullName(student)}</h1>
-
-        <div className="mb-6">
-          <p className="text-sm text-muted-foreground">
-            Nº {student.listNumber}{student.nia ? ` · NIA ${student.nia}` : ""} · Grupo
+        <header className="mb-6 border-b-2 border-foreground pb-3">
+          <h1 className="text-2xl font-bold">Boletín de calificaciones</h1>
+          <p className="mt-1 text-sm">
+            {fullName(student)} · Nº {student.listNumber}
+            {student.nia ? ` · NIA ${student.nia}` : ""} · {student.group.name}
           </p>
-        </div>
+        </header>
 
-        {/* Resumen de anotaciones del profesor */}
-        {annotations && Object.keys(annotations).length > 0 && (
-          <div className="rounded-lg border p-4 mb-6 bg-muted/30">
-            <h3 className="font-semibold mb-3">Observaciones del profesor</h3>
+        {annotationKeys.length > 0 && (
+          <section className="mb-6 rounded-lg border p-4 print:mb-4 print:border-foreground">
+            <h2 className="mb-2 text-sm font-semibold">Observaciones del profesor</h2>
             <div className="space-y-2">
-              {Object.entries(annotations).map(([trimesterKey, text]) => (
-                <div key={trimesterKey} className="p-3 rounded bg-white">
-                  <p className="font-medium text-sm">{trimesterKey}</p>
-                  <p className="text-truncate whitespace-pre-wrap">
-                    {(text || "--") as string}
-                  </p>
+              {annotationKeys.map((key) => (
+                <div key={key}>
+                  <p className="text-xs font-medium text-muted-foreground">{key}</p>
+                  <p className="whitespace-pre-wrap text-sm">{annotations[key]}</p>
                 </div>
               ))}
             </div>
-          </div>
+          </section>
         )}
 
-        {/* Gráfico de evolución */}
-        {trimesters.length > 0 && (
-          <>
-            <ResponsiveContainer width="100%" height={200}>
-              <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="name" fontSize={12} />
-                <YAxis domain={[0, 10]} fontSize={12} />
-                <Tooltip
-                  formatter={(value) => `${Number(value).toFixed(2)}`}
-                  labelStyle={{ color: "#09090b" }}
-                  contentStyle={{ borderRadius: 8, fontSize: 13 }}
-                />
-                <Legend />
-                <Line type="monotone" dataKey="Alumno" stroke="hsl(var(--primary))" strokeWidth={2.5} dot connectNulls />
-              </LineChart>
-            </ResponsiveContainer>
-
-            <div className="mt-4 text-sm">
-              {chartData.map((d) => (
-                <div key={d.name} className="flex items-center justify-between">
-                  <span className="font-medium">{d.name}</span>
-                  <span>
-                    Media: {d.Alumno !== null ? d.Alumno.toFixed(2) : "—"}
-                  </span>
-                </div>
-              ))}
+        {rows.map((r) => (
+          <section key={r.id} className="mb-6 print:mb-4 print:break-inside-avoid">
+            <div className="mb-2 flex items-baseline justify-between">
+              <h2 className="text-sm font-semibold">
+                {r.name} ({r.percentage}%)
+              </h2>
+              <p className="text-sm">
+                Media: <span className="font-semibold">{fmt(r.average)}</span>
+              </p>
             </div>
-          </>
-        )}
 
-        {/* Lista de evaluaciones por trimestre */}
-        {trimesters.map((t, ti) => (
-          <div key={t.id} className="rounded-lg border p-4 mb-4">
-            <h3 className="font-semibold text-sm mb-3">{t.name}</h3>
-            <table className="w-full text-xs">
-              <thead className="bg-muted">
-                <tr>
-                  <th className="text-left px-2 py-1">Evaluación</th>
-                  <th className="text-center px-2 py-1">Peso</th>
-                  <th className="text-center px-2 py-1">Nota</th>
-                </tr>
-              </thead>
-              <tbody>
-                {t.assessments.map((a, i) => (
-                  <tr key={i} className="border-t">
-                    <td className="px-2 py-1">{a.name}</td>
-                    <td className="px-2 py-1 text-center">{a.percentage}%</td>
-                    <td className="px-2 py-1 text-center">—</td>
+            {r.items.length === 0 ? (
+              <p className="text-xs text-muted-foreground">Sin evaluaciones.</p>
+            ) : (
+              <table className="w-full border-collapse text-xs">
+                <thead>
+                  <tr className="bg-muted print:bg-transparent">
+                    <th className="border border-border px-2 py-1 text-left">Evaluación</th>
+                    <th className="border border-border px-2 py-1 text-left">Tipo</th>
+                    <th className="border border-border px-2 py-1 text-center">Peso</th>
+                    <th className="border border-border px-2 py-1 text-center">Nota</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {r.items.map((it) => (
+                    <tr key={it.id}>
+                      <td className="border border-border px-2 py-1">
+                        {it.name}
+                        {it.isPersonal ? " (personal)" : ""}
+                      </td>
+                      <td className="border border-border px-2 py-1">{it.type}</td>
+                      <td className="border border-border px-2 py-1 text-center">
+                        {it.percentage}%
+                      </td>
+                      <td className="border border-border px-2 py-1 text-center">
+                        {it.score === null ? "—" : `${it.score} / ${it.maxScore}`}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+
+            <p className="mt-1 text-xs text-muted-foreground">
+              Faltas: {r.absences.absent} · Retrasos: {r.absences.late} · Negativos:{" "}
+              {r.absences.negative}
+              {r.penalty > 0 ? ` · Penalización: -${fmt(r.penalty)}` : ""}
+            </p>
+          </section>
         ))}
 
-        {/* Media final */}
-        <div className="mt-6 p-4 rounded-lg border bg-muted/30">
-          <p className="font-medium text-lg">Media final</p>
-          <p className="text-3xl font-bold mt-2">
-            {fmt(
-              studentFinalAverage(student as any, trimesters as any, {
-                absence: 0,
-                late: 0,
-                negative: 0,
-              }))
-            }
-          </p>
-        </div>
+        <section className="mb-6 rounded-lg border p-4 print:mb-4">
+          <p className="text-sm font-medium">Media final</p>
+          <p className="mt-1 text-3xl font-bold">{fmt(finalAverage)}</p>
+        </section>
 
-        {/* Faltas */}
-        <div className="mt-4">
-          <p className="text-sm text-muted-foreground">
-            Faltas totales: {countAbsences(student as any).absent}
-            · Retrasos: {countAbsences(student as any).late}
-            · Negativos: {countAbsences(student as any).negative}
-          </p>
-        </div>
+        {chartPoints.length > 0 && (
+          <section className="no-print mb-6 rounded-lg border p-4">
+            <h2 className="mb-2 text-sm font-semibold">Evolución</h2>
+            <div className="flex h-40 items-end gap-6">
+              {chartPoints.map((r) => {
+                const pct = Math.max(
+                  0,
+                  Math.min(100, ((r.average ?? 0) / 10) * 100)
+                );
+                return (
+                  <div key={r.id} className="flex flex-1 flex-col items-center gap-1">
+                    <span className="text-xs font-medium">{fmt(r.average)}</span>
+                    <div
+                      className="w-full rounded-t bg-primary"
+                      style={{ height: `${pct}%` }}
+                    />
+                    <span className="text-[10px] text-muted-foreground">
+                      {r.name.replace("Trimestre", "T")}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        {annotations.firma?.trim() && (
+          <footer className="border-t pt-3 text-sm print:border-foreground">
+            <p className="whitespace-pre-wrap">{annotations.firma}</p>
+          </footer>
+        )}
+
+        <PrintStyles />
       </div>
     </div>
+  );
+}
+
+function PrintStyles() {
+  return (
+    <style>{`
+      @media print {
+        .no-print { display: none !important; }
+        body { background: #fff !important; }
+        @page { size: A4; margin: 14mm; }
+      }
+    `}</style>
   );
 }
