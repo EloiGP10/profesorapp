@@ -76,6 +76,7 @@ interface GradeTableProps {
   onCopyAssessment?: (assessment: GradeTableAssessment) => void;
   onOpenReport?: (studentId: string) => void;
   onOpenProgress?: (studentId: string) => void;
+  onOpenFamily?: (studentId: string) => void;
   onOpenNotes: (studentId: string) => void;
   onEditStudent: (studentId: string) => void;
   onOpenException: (studentId: string, studentName: string) => void;
@@ -118,6 +119,7 @@ export function GradeTable({
   onCopyAssessment,
   onOpenReport,
   onOpenProgress,
+  onOpenFamily,
   onOpenNotes,
   onEditStudent,
   onOpenException,
@@ -443,6 +445,11 @@ export function GradeTable({
                       {onOpenProgress && (
                         <DropdownMenuItem onClick={() => onOpenProgress(student.id)}>
                           <TrendingUp className="mr-2 h-4 w-4" /> Evolución del alumno
+                        </DropdownMenuItem>
+                      )}
+                      {onOpenFamily && (
+                        <DropdownMenuItem onClick={() => onOpenFamily(student.id)}>
+                          <UserRoundX className="mr-2 h-4 w-4" /> Informes para familia
                         </DropdownMenuItem>
                       )}
                       <DropdownMenuItem
@@ -1140,6 +1147,15 @@ export function GradeTable({
             >
               <TrendingUp className="h-4 w-4" />
               Evolución del alumno
+            </button>
+          )}
+          {onOpenFamily && (
+            <button
+              className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent"
+              onClick={() => onOpenFamily(contextMenu.studentId)}
+            >
+              <UserRoundX className="h-4 w-4" />
+              Informes familia
             </button>
           )}
           <button

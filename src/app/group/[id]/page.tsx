@@ -22,6 +22,7 @@ import { CopyAssessmentDialog, type CopyAssessmentSource } from "@/components/co
 import { CopyTrimesterDialog } from "@/components/copy-trimester-dialog";
 import { StudentReportDialog } from "@/components/student-report-dialog";
 import { StudentProgressDialog } from "@/components/student-progress-dialog";
+import { FamilyReportDialog } from "@/components/family-report-dialog";
 import { ExportDialog } from "@/components/export-dialog";
 import { ProfileDialog } from "@/components/profile-dialog";
 import { toast } from "sonner";
@@ -102,6 +103,7 @@ export default function GroupPage() {
   const [dialogCopyTrimester, setDialogCopyTrimester] = useState(false);
   const [dialogReport, setDialogReport] = useState<null | { open: boolean; studentId: string }>(null);
   const [dialogProgress, setDialogProgress] = useState<null | { open: boolean; studentId: string }>(null);
+  const [dialogFamily, setDialogFamily] = useState<null | { open: boolean; studentId: string }>(null);
   const [dialogException, setDialogException] = useState<null | { open: boolean; studentId: string; studentName: string }>(null);
   const [dialogAbsence, setDialogAbsence] = useState<null | { open: boolean; studentId: string; studentName: string; absences: { id: string; date: string; type: string; notes: string | null; trimesterId: string | null }[] }>(null);
   const [statsActive, setStatsActive] = useState(false);
@@ -431,6 +433,7 @@ export default function GroupPage() {
           onCopyAssessment={handleCopyAssessment}
           onOpenReport={(studentId) => setDialogReport({ open: true, studentId })}
           onOpenProgress={(studentId) => setDialogProgress({ open: true, studentId })}
+          onOpenFamily={(studentId) => setDialogFamily({ open: true, studentId })}
           onOpenNotes={handleOpenNotes}
           onEditStudent={handleEditStudent}
           onOpenException={handleOpenException}
@@ -613,6 +616,19 @@ export default function GroupPage() {
           negative: group.penaltyNegative,
         }}
         initialStudentId={dialogProgress?.studentId ?? null}
+      />
+
+      <FamilyReportDialog
+        open={dialogFamily?.open ?? false}
+        onOpenChange={(o) => setDialogFamily((prev) => (prev ? { ...prev, open: o } : prev))}
+        student={group.students.find((s) => s.id === dialogFamily?.studentId) ?? null}
+        groupName={group.name}
+        trimesters={group.trimesters.map((t) => ({
+          id: t.id,
+          name: t.name,
+          percentage: t.percentage,
+          assessments: t.assessments ?? [],
+        }))}
       />
 
       <ImportDialog
