@@ -49,6 +49,7 @@ export interface GradeTableAssessment {
   percentage: number;
   maxScore: number;
   isExtra: boolean;
+  isOptional?: boolean;
   studentId?: string | null;
   columnColor?: string | null;
 }
@@ -589,6 +590,9 @@ export function GradeTable({
                           {assessment.percentage > 0 && (
                             <span className="text-muted-foreground text-[10px]">· {assessment.percentage}%</span>
                           )}
+                          {assessment.isOptional && !assessment.isExtra && (
+                            <span className="text-[10px] text-emerald-600 dark:text-emerald-400">· opcional</span>
+                          )}
                         </button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="center">
@@ -749,6 +753,7 @@ export function GradeTable({
                   (a) => !student.exceptions.some((e) => e.assessmentId === a.id && e.isExcluded)
                 );
 
+                // Voluntario (isExtra) nunca computa; opcional computa solo si hay nota.
                 const graded = usefulAssessments
                   .filter((a) => !a.isExtra)
                   .filter((a) => student.grades.find((g) => g.assessmentId === a.id)?.score != null);

@@ -130,9 +130,13 @@ export function FamilyReportDialog({
     if (!student) return null;
     return trimesters.map((t: any) => {
       const useful = [
-        ...t.assessments.filter((a: any) => !a.isExtra && !a.studentId),
-        ...t.assessments.filter((a: any) => !a.isExtra && a.studentId === student.id),
-      ];
+        ...t.assessments.filter((a: any) => !a.studentId),
+        ...t.assessments.filter((a: any) => a.studentId === student.id),
+      ].filter(
+        (a: any) =>
+          !a.isExtra &&
+          !student.exceptions.find((e: any) => e.assessmentId === a.id && e.isExcluded)
+      );
       const graded = useful.filter(
         (a: any) => student.grades.find((g: any) => g.assessmentId === a.id)?.score != null
       );

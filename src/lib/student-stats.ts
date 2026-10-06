@@ -15,6 +15,8 @@ export interface StatAssessment {
   percentage: number;
   maxScore: number;
   isExtra: boolean;
+  /** Opcional: computa en la media solo si el alumno tiene nota; si no, no penaliza. */
+  isOptional?: boolean;
   studentId?: string | null;
 }
 
@@ -44,14 +46,22 @@ export function getStudentPenalty(
   return absCount * penalties.absence + lateCount * penalties.late + negCount * penalties.negative;
 }
 
-/** Evaluaciones computables del alumno en un trimestre (sin extra, sin excluidas) */
+/** Evaluaciones computables del alumno en un trimestre.
+ *
+ * - Trabajo voluntario (`isExtra`): nunca computa, ni sube ni baja la media.
+ * - Opcional (`isOptional`): computa si el alumno tiene nota; si no la tiene,
+ *   simplemente se omite, por lo que no penaliza a quien no lo entrega.
+ * - Excluidas por excepción: nunca computan.
+ */
 export function usefulAssessments(student: StatStudent, trimester: StatTrimester): StatAssessment[] {
-  const tas = [
-    ...trimester.assessments.filter((a) => !a.isExtra && !a.studentId),
-    ...trimester.assessments.filter((a) => !a.isExtra && a.studentId === student.id),
+  const candidates = [
+    ...trimester.assessments.filter((a) => !a.studentId),
+    ...trimester.assessments.filter((a) => a.studentId === student.id),
   ];
-  return tas.filter(
-    (a) => !student.exceptions.find((e) => e.assessmentId === a.id && e.isExcluded)
+  return candidates.filter(
+    (a) =>
+      !a.isExtra &&
+      !student.exceptions.find((e) => e.assessmentId === a.id && e.isExcluded)
   );
 }
 

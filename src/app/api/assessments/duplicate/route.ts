@@ -50,6 +50,7 @@ export async function POST(request: Request) {
         percentage: source.percentage,
         maxScore: source.maxScore,
         isExtra: source.isExtra,
+        isOptional: source.isOptional,
         studentId: sameGroup ? source.studentId : null,
         columnColor: source.columnColor,
         order: count + 1,

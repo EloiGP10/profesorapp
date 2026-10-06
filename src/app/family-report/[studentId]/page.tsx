@@ -86,6 +86,7 @@ export default async function FamilyReportPage({
       percentage: a.percentage,
       maxScore: a.maxScore,
       isExtra: a.isExtra,
+      isOptional: a.isOptional,
       studentId: a.studentId,
     })),
   }));
@@ -99,11 +100,7 @@ export default async function FamilyReportPage({
   const rows = student.group.trimesters.map((t, i) => {
     const st = statTrimesters[i];
     const items = st.assessments
-      .filter(
-        (a) =>
-          (!a.isExtra && !a.studentId) ||
-          (!a.isExtra && a.studentId === student.id)
-      )
+      .filter((a) => !a.studentId || a.studentId === student.id)
       .filter(
         (a) =>
           !student.exceptions.find((e) => e.assessmentId === a.id && e.isExcluded)
@@ -118,6 +115,8 @@ export default async function FamilyReportPage({
           percentage: a.percentage,
           maxScore: a.maxScore,
           isPersonal: !!a.studentId,
+          isExtra: a.isExtra,
+          isOptional: a.isOptional,
           score: grade?.score ?? null,
         };
       });
@@ -208,6 +207,8 @@ export default async function FamilyReportPage({
                       <td className="border border-border px-2 py-1">
                         {it.name}
                         {it.isPersonal ? " (personal)" : ""}
+                        {it.isExtra ? " (voluntario, no cuenta)" : ""}
+                        {!it.isExtra && it.isOptional ? " (opcional)" : ""}
                       </td>
                       <td className="border border-border px-2 py-1">{it.type}</td>
                       <td className="border border-border px-2 py-1 text-center">

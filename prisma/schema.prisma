@@ -145,6 +145,7 @@ model Assessment {
   percentage  Float        @default(10)
   maxScore    Float        @default(10)
   isExtra     Boolean      @default(false)
+  isOptional  Boolean      @default(false)
   order       Int          @default(1)
   columnColor String?
   createdAt   DateTime     @default(now())

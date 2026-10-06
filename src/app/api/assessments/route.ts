@@ -29,7 +29,7 @@ export async function POST(request: Request) {
   if (error) return error;
 
   try {
-    const { trimesterId, name, type, percentage, maxScore, isExtra, rubric, studentId, columnColor } =
+    const { trimesterId, name, type, percentage, maxScore, isExtra, isOptional, rubric, studentId, columnColor } =
       await request.json();
 
     if (!(await verifyTrimesterOwnership(trimesterId, user!.id))) {
@@ -47,6 +47,7 @@ export async function POST(request: Request) {
         percentage: percentage !== undefined ? parseFloat(percentage) : 10,
         maxScore: maxScore !== undefined ? parseFloat(maxScore) : 10,
         isExtra: isExtra ?? false,
+        isOptional: (isExtra ? false : isOptional) ?? false,
         order: count + 1,
         columnColor: columnColor || null,
         rubric:
@@ -118,7 +119,7 @@ export async function PUT(request: Request) {
   if (error) return error;
 
   try {
-    const { id, name, type, percentage, maxScore, isExtra, order, trimesterId, columnColor } = await request.json();
+    const { id, name, type, percentage, maxScore, isExtra, isOptional, order, trimesterId, columnColor } = await request.json();
 
     if (!(await verifyAssessmentOwnership(id, user!.id))) {
       return NextResponse.json({ error: "Evaluación no encontrada" }, { status: 404 });
@@ -130,6 +131,7 @@ export async function PUT(request: Request) {
       percentage: percentage !== undefined ? parseFloat(percentage) : undefined,
       maxScore: maxScore !== undefined ? parseFloat(maxScore) : undefined,
       isExtra,
+      isOptional: isExtra ? false : isOptional,
       order,
       columnColor: columnColor === "" ? null : columnColor,
     };

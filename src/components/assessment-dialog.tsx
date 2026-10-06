@@ -30,6 +30,7 @@ interface Assessment {
   percentage: number;
   maxScore: number;
   isExtra: boolean;
+  isOptional?: boolean;
   columnColor?: string | null;
 }
 
@@ -58,6 +59,7 @@ export function AssessmentDialog({
   const [percentage, setPercentage] = useState(10);
   const [maxScore, setMaxScore] = useState(10);
   const [isExtra, setIsExtra] = useState(false);
+  const [isOptional, setIsOptional] = useState(false);
   const [color, setColor] = useState<ColumnColor | null>(null);
 
   const getSuggestedName = useCallback(
@@ -79,6 +81,7 @@ export function AssessmentDialog({
       setPercentage(assessment.percentage);
       setMaxScore(assessment.maxScore);
       setIsExtra(assessment.isExtra);
+      setIsOptional(Boolean((assessment as any).isOptional));
       setColor(parseColorString(assessment.columnColor));
     } else if (open) {
       setType("EXAM");
@@ -124,6 +127,7 @@ export function AssessmentDialog({
           percentage: Number(percentage) || 0,
           maxScore: Number(maxScore) || 10,
           isExtra,
+          isOptional,
           columnColor: colorToString(color),
         }),
       });
@@ -227,10 +231,25 @@ export function AssessmentDialog({
             <Checkbox
               id="assessment-extra"
               checked={isExtra}
-              onCheckedChange={(v) => setIsExtra(Boolean(v))}
+              onCheckedChange={(v) => {
+                setIsExtra(Boolean(v));
+                if (v) setIsOptional(false);
+              }}
             />
             <Label htmlFor="assessment-extra" className="text-sm">
-              Trabajo voluntario (no baja la media)
+              Trabajo voluntario (no cuenta en la media)
+            </Label>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="assessment-optional"
+              checked={isOptional}
+              disabled={isExtra}
+              onCheckedChange={(v) => setIsOptional(Boolean(v))}
+            />
+            <Label htmlFor="assessment-optional" className="text-sm">
+              Participación opcional (cuenta solo si pones nota; si no, no baja la media)
             </Label>
           </div>
 

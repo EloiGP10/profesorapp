@@ -64,6 +64,7 @@ export async function POST(request: Request) {
           percentage: a.percentage,
           maxScore: a.maxScore,
           isExtra: a.isExtra,
+          isOptional: a.isOptional,
           columnColor: a.columnColor,
           order: a.order,
           rubric: a.rubric
