@@ -620,7 +620,7 @@ export default function GroupPage() {
 
       <FamilyReportDialog
         open={dialogFamily?.open ?? false}
-        onOpenChange={(o) => setDialogFamily((prev) => (prev ? { ...prev, open: o } : prev))}
+        onOpenChange={(o: boolean) => setDialogFamily((prev) => (prev ? { ...prev, open: o } : prev))}
         student={group.students.find((s) => s.id === dialogFamily?.studentId) ?? null}
         groupName={group.name}
         trimesters={group.trimesters.map((t) => ({

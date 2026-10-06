@@ -123,7 +123,7 @@ export function FamilyReportDialog({
 
   const report = useMemo(() => {
     if (!student) return null;
-    return trimesters.map((t) => {
+    return trimesters.map((t: any) => {
       const useful = [
         ...t.assessments.filter((a: any) => !a.isExtra && !a.studentId),
         ...t.assessments.filter((a: any) => !a.isExtra && a.studentId === student.id),
@@ -229,7 +229,7 @@ export function FamilyReportDialog({
 
         {report && (
           <div className="space-y-5">
-            {report.map((t) => (
+            {report.map((t: any) => (
               <div key={t.id} className="mb-4">
                 <div className="flex items-baseline justify-between mb-2">
                   <h4 className="text-sm font-semibold">{t.name} <span className="font-normal text-muted-foreground">({t.percentage}%)</span></h4>
@@ -293,7 +293,7 @@ export function FamilyReportDialog({
                           <Button
                             key={text}
                             variant="ghost"
-                            size="small"
+                            size="sm"
                             onClick={() => generateStructuredComment(trimesterKey, i)}
                             className="text-[11px] px-2 py-1"
                           >
