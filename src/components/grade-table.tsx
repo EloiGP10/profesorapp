@@ -126,6 +126,7 @@ export function GradeTable({
   onOpenAbsence,
   onDataChange,
 }: GradeTableProps) {
+  console.log('GradeTable props:', { onOpenReport, onOpenProgress, onOpenFamily, onOpenNotes });
   const [editingCell, setEditingCell] = useState<{ studentId: string; assessmentId: string } | null>(null);
   const [editValue, setEditValue] = useState("");
   const [savingCell, setSavingCell] = useState<{ studentId: string; assessmentId: string } | null>(null);
