@@ -61,9 +61,10 @@ export function FamilyReportDialog({
 
   // Cargar anotaciones existentes al montar
   useMemo(() => {
+    if (!student?.id) return;
     async function loadAnnotations() {
       try {
-        const res = await fetch(`/api/reports/annotations?studentId=${student?.id}`, {
+        const res = await fetch(`/api/reports/annotations?studentId=${student.id}`, {
           cache: "no-store",
         });
         if (res.ok) {
