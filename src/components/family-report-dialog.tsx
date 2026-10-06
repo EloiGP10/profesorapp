@@ -6,7 +6,7 @@ import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { FileSpreadsheet, Printer } from "lucide-react";
+import { FileSpreadsheet, Link2, Printer } from "lucide-react";
 import * as XLSX from "xlsx";
 import {
   countAbsences,
@@ -164,6 +164,19 @@ export function FamilyReportDialog({
     });
   }, [student, trimesters]);
 
+  // Media final ponderada de todos los trimestres
+  const finalAverage = useMemo(() => {
+    if (!student || !report || report.length === 0) return null;
+    let weighted = 0;
+    let totalWeight = 0;
+    report.forEach((t: any) => {
+      if (t.average === null) return;
+      weighted += t.average * (t.percentage || 0);
+      totalWeight += t.percentage || 0;
+    });
+    return totalWeight > 0 ? weighted / totalWeight : null;
+  }, [student, report]);
+
   // Alternar visibilidad de la sección de comentarios de un trimestre
   const toggleTrimExpansion = (trimesterKey: string) => {
     setExpandedTrims((prev: string[]) => {
@@ -214,6 +227,24 @@ export function FamilyReportDialog({
     } catch {
       toast.error("Error al exportar los informes");
     }
+  };
+
+  // Copiar el enlace público para las familias
+  const handleCopyLink = async () => {
+    if (!student) return;
+    const url = `${window.location.origin}/family-report/${student.id}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success("Enlace copiado. Ya puedes enviárselo a la familia.");
+    } catch {
+      window.prompt("Copia este enlace para la familia:", url);
+    }
+  };
+
+  // Exportar a PDF con el mismo formato que se ve en pantalla
+  const handleExportPdf = () => {
+    if (!student) return;
+    window.print();
   };
 
   return (
@@ -361,20 +392,113 @@ export function FamilyReportDialog({
               <Button
                 type="button"
                 variant="outline"
+                onClick={handleCopyLink}
+                className="flex-1 min-w-52"
+              >
+                <Link2 className="mr-2 h-4 w-4" />
+                Copiar enlace para la familia
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleExportPdf}
+                className="flex-1 min-w-52"
+              >
+                <Printer className="mr-2 h-4 w-4" />
+                Exportar PDF (igual que se ve)
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
                 onClick={handleExportExcel}
-                className="flex-1 min-w-60"
+                className="flex-1 min-w-52"
               >
                 <FileSpreadsheet className="mr-2 h-4 w-4" />
                 Descargar Excel con notas
               </Button>
-              <Button
-                type="button"
-                onClick={() => toast("Datos actualizados")}
-                className="flex-1 min-w-60"
-              >
-                Actualizar
-              </Button>
             </div>
+          </div>
+        )}
+
+        {/* Contenedor exclusivo para impresión: replica el formato visible */}
+        {student && report && (
+          <div className="print-report hidden">
+            <style>{`
+              @media print {
+                body * { visibility: hidden !important; }
+                .print-report, .print-report * { visibility: visible !important; }
+                .print-report {
+                  position: absolute;
+                  left: 0; top: 0; width: 100%;
+                  padding: 0; margin: 0;
+                  background: #fff; color: #000;
+                }
+                @page { size: A4; margin: 14mm; }
+              }
+            `}</style>
+
+            <header style={{ marginBottom: "16px", borderBottom: "2px solid #000", paddingBottom: "8px" }}>
+              <h1 style={{ fontSize: "20px", fontWeight: 700, margin: 0 }}>
+                Boletín de calificaciones
+              </h1>
+              <p style={{ fontSize: "14px", margin: "4px 0 0" }}>
+                {fullName(student)} · Nº {student.listNumber}
+                {student.nia ? ` · NIA ${student.nia}` : ""} · {groupName}
+              </p>
+            </header>
+
+            {TRIMESTER_KEYS.map((trimesterKey) => (
+              <section key={trimesterKey} style={{ marginBottom: "12px" }}>
+                <h2 style={{ fontSize: "14px", fontWeight: 600, margin: "0 0 4px" }}>{trimesterKey}</h2>
+                <p style={{ fontSize: "12px", margin: "0 0 4px", whiteSpace: "pre-wrap" }}>
+                  {annotations[trimesterKey] || "—"}
+                </p>
+              </section>
+            ))}
+
+            {report.map((t: any) => (
+              <section key={t.id} style={{ marginBottom: "14px", breakInside: "avoid" }}>
+                <h2 style={{ fontSize: "13px", fontWeight: 600, margin: "0 0 4px" }}>
+                  {t.name} ({t.percentage}%) — Media: {fmt(t.average)}
+                </h2>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11px" }}>
+                  <thead>
+                    <tr style={{ background: "#eee" }}>
+                      <th style={{ border: "1px solid #999", padding: "3px 5px", textAlign: "left" }}>Evaluación</th>
+                      <th style={{ border: "1px solid #999", padding: "3px 5px", textAlign: "left" }}>Tipo</th>
+                      <th style={{ border: "1px solid #999", padding: "3px 5px", textAlign: "center" }}>Peso</th>
+                      <th style={{ border: "1px solid #999", padding: "3px 5px", textAlign: "center" }}>Nota</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {t.items.map((it: any, i: number) => (
+                      <tr key={i}>
+                        <td style={{ border: "1px solid #ccc", padding: "3px 5px" }}>
+                          {it.name}{it.isPersonal ? " (personal)" : ""}
+                        </td>
+                        <td style={{ border: "1px solid #ccc", padding: "3px 5px" }}>{it.type}</td>
+                        <td style={{ border: "1px solid #ccc", padding: "3px 5px", textAlign: "center" }}>{it.percentage}%</td>
+                        <td style={{ border: "1px solid #ccc", padding: "3px 5px", textAlign: "center" }}>
+                          {it.score === null ? "—" : `${it.score} / ${it.maxScore}`}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <p style={{ fontSize: "11px", margin: "4px 0 0" }}>
+                  Faltas: {t.absences.absent} · Retrasos: {t.absences.late} · Negativos: {t.absences.negative}
+                </p>
+              </section>
+            ))}
+
+            <footer style={{ marginTop: "14px", borderTop: "1px solid #999", paddingTop: "8px", fontSize: "12px" }}>
+              <p style={{ margin: "0" }}>
+                <strong>Media final:</strong> {fmt(finalAverage)}
+              </p>
+              {annotations.firma && (
+                <p style={{ margin: "14px 0 0", whiteSpace: "pre-wrap" }}>{annotations.firma}</p>
+              )}
+            </footer>
           </div>
         )}
       </DialogContent>

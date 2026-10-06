@@ -108,6 +108,15 @@ export default function FamilyReportPage({
   return (
     <div className="min-h-screen bg-background p-4">
       <div className="max-w-4xl mx-auto">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-6 no-print">
+          <p className="text-xs text-muted-foreground">
+            Enlace personal e intransferible. Los datos se actualizan automáticamente.
+          </p>
+          <Button variant="outline" size="sm" onClick={() => window.print()}>
+            Imprimir / Guardar PDF
+          </Button>
+        </div>
+
         <h1 className="text-2xl font-bold mb-6">Informes — {fullName(student)}</h1>
 
         <div className="mb-6">
