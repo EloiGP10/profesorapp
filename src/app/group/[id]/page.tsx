@@ -510,6 +510,13 @@ export default function GroupPage() {
         assessmentName={dialogRubric?.assessment.name ?? ""}
         maxScore={dialogRubric?.assessment.maxScore ?? 10}
         rubric={dialogRubric?.assessment.rubric ?? null}
+        evaluatedCount={
+          new Set(
+            ((dialogRubric?.assessment.rubric?.rows ?? []) as Array<{
+              scores?: Array<{ studentId: string }>;
+            }>).flatMap((r) => (r.scores ?? []).map((s) => s.studentId))
+          ).size
+        }
       />
 
       <RubricEvalDialog

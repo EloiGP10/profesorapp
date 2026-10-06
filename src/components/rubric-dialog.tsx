@@ -73,9 +73,11 @@ interface RubricDialogProps {
     id: string;
     rows: RubricRowDraft[];
   } | null;
+  /** Nº de alumnos ya evaluados con esta rúbrica (si > 0 se muestra aviso) */
+  evaluatedCount?: number;
 }
 
-export function RubricDialog({ open, onOpenChange, assessmentId, assessmentName, maxScore, rubric }: RubricDialogProps) {
+export function RubricDialog({ open, onOpenChange, assessmentId, assessmentName, maxScore, rubric, evaluatedCount = 0 }: RubricDialogProps) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [rows, setRows] = useState<RubricRowDraft[]>(
@@ -156,7 +158,12 @@ export function RubricDialog({ open, onOpenChange, assessmentId, assessmentName,
         }),
       });
       if (res.ok) {
-        toast.success("Rúbrica guardada");
+        const data = await res.json();
+        toast.success(
+          data.preservedStudents > 0
+            ? `Rúbrica guardada · notas de ${data.preservedStudents} ${data.preservedStudents === 1 ? "alumno conservadas" : "alumnos conservadas"}`
+            : "Rúbrica guardada"
+        );
         onOpenChange(false);
         router.refresh();
       } else {
@@ -294,6 +301,12 @@ export function RubricDialog({ open, onOpenChange, assessmentId, assessmentName,
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {evaluatedCount > 0 && (
+            <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-900 dark:text-amber-300">
+              Esta rúbrica ya evalúa a {evaluatedCount} {evaluatedCount === 1 ? "alumno" : "alumnos"}: al guardar
+              se conservan sus notas. Solo se pierden las de los criterios que elimines.
+            </div>
+          )}
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-sm">
               <thead>
