@@ -19,11 +19,14 @@ import { ExceptionDialog } from "@/components/exception-dialog";
 import { AbsenceDialog } from "@/components/absence-dialog";
 import { ImportDialog } from "@/components/import-dialog";
 import { CopyAssessmentDialog, type CopyAssessmentSource } from "@/components/copy-assessment-dialog";
+import { CopyTrimesterDialog } from "@/components/copy-trimester-dialog";
+import { StudentReportDialog } from "@/components/student-report-dialog";
+import { StudentProgressDialog } from "@/components/student-progress-dialog";
 import { ExportDialog } from "@/components/export-dialog";
 import { ProfileDialog } from "@/components/profile-dialog";
 import { toast } from "sonner";
 import {
-  AlertTriangle, ArrowLeft, BarChart3, Bell, FileUp, GraduationCap,
+  AlertTriangle, ArrowLeft, BarChart3, Bell, Copy, FileUp, GraduationCap,
   Loader2, Plus, Settings2, User, UserPlus, FileText, Award, Settings, BookOpen, Clock,
 } from "lucide-react";
 import type { GradeTableStudent, GradeTableAssessment } from "@/components/grade-table";
@@ -96,6 +99,9 @@ export default function GroupPage() {
   const [dialogRubric, setDialogRubric] = useState<null | { open: boolean; assessment: AssessmentFull }>(null);
   const [dialogRubricEval, setDialogRubricEval] = useState<null | { open: boolean; assessment: RubricEvalAssessment | null; studentId?: string | null }>(null);
   const [dialogCopy, setDialogCopy] = useState<null | { open: boolean; assessment: CopyAssessmentSource }>(null);
+  const [dialogCopyTrimester, setDialogCopyTrimester] = useState(false);
+  const [dialogReport, setDialogReport] = useState<null | { open: boolean; studentId: string }>(null);
+  const [dialogProgress, setDialogProgress] = useState<null | { open: boolean; studentId: string }>(null);
   const [dialogException, setDialogException] = useState<null | { open: boolean; studentId: string; studentName: string }>(null);
   const [dialogAbsence, setDialogAbsence] = useState<null | { open: boolean; studentId: string; studentName: string; absences: { id: string; date: string; type: string; notes: string | null; trimesterId: string | null }[] }>(null);
   const [statsActive, setStatsActive] = useState(false);
@@ -401,6 +407,9 @@ export default function GroupPage() {
             <Button variant="outline" size="sm" onClick={() => setDialogExport(true)}>
               <BarChart3 className="mr-1.5 h-4 w-4" /> Exportar
             </Button>
+            <Button variant="outline" size="sm" onClick={() => setDialogCopyTrimester(true)}>
+              <Copy className="mr-1.5 h-4 w-4" /> Copiar trimestre
+            </Button>
             <Button size="sm" onClick={() => setDialogStudent({ open: true, studentId: null })}>
               <UserPlus className="mr-1.5 h-4 w-4" /> Añadir alumno
             </Button>
@@ -420,6 +429,8 @@ export default function GroupPage() {
           onOpenRubric={openRubric}
           onOpenRubricEval={handleOpenRubricEval}
           onCopyAssessment={handleCopyAssessment}
+          onOpenReport={(studentId) => setDialogReport({ open: true, studentId })}
+          onOpenProgress={(studentId) => setDialogProgress({ open: true, studentId })}
           onOpenNotes={handleOpenNotes}
           onEditStudent={handleEditStudent}
           onOpenException={handleOpenException}
@@ -562,6 +573,46 @@ export default function GroupPage() {
         sourceGroupId={group.id}
         sourceTrimesterId={activeTrimester.id}
         onCopied={loadGroup}
+      />
+
+      <CopyTrimesterDialog
+        open={dialogCopyTrimester}
+        onOpenChange={setDialogCopyTrimester}
+        sourceGroupId={group.id}
+        sourceGroupName={group.name}
+        trimesters={group.trimesters.map((t) => ({
+          id: t.id,
+          name: t.name,
+          assessmentsCount: (t.assessments ?? []).length,
+        }))}
+        defaultTrimesterId={activeTrimester.id}
+        onCopied={loadGroup}
+      />
+
+      <StudentReportDialog
+        open={dialogReport?.open ?? false}
+        onOpenChange={(o) => setDialogReport((prev) => (prev ? { ...prev, open: o } : prev))}
+        student={group.students.find((s) => s.id === dialogReport?.studentId) ?? null}
+        groupName={group.name}
+        trimesters={group.trimesters}
+        penalties={{
+          absence: group.penaltyAbsence,
+          late: group.penaltyLate,
+          negative: group.penaltyNegative,
+        }}
+      />
+
+      <StudentProgressDialog
+        open={dialogProgress?.open ?? false}
+        onOpenChange={(o) => setDialogProgress((prev) => (prev ? { ...prev, open: o } : prev))}
+        students={group.students}
+        trimesters={group.trimesters}
+        penalties={{
+          absence: group.penaltyAbsence,
+          late: group.penaltyLate,
+          negative: group.penaltyNegative,
+        }}
+        initialStudentId={dialogProgress?.studentId ?? null}
       />
 
       <ImportDialog

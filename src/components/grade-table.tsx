@@ -12,8 +12,15 @@ import {
 import { toast } from "sonner";
 import { colorToCss, parseColorString } from "@/components/color-picker";
 import {
-  AlertCircle, CalendarX2, Check, ClipboardCopy, Copy, Info, Loader2, Minus, Pencil, Plus,
-  ScrollText, Settings2, Sparkles, Star, Trash2, UserRoundX,
+  getStudentPenalty as calcPenalty,
+  studentFinalAverage as calcFinalAverage,
+  trimesterAverage as calcTrimesterAverage,
+  trimesterMaxAverage as calcTrimesterMax,
+  type StatPenalties,
+} from "@/lib/student-stats";
+import {
+  AlertCircle, CalendarX2, Check, ClipboardCopy, Copy, FileText, Info, Loader2, Minus, Pencil, Plus,
+  ScrollText, Settings2, Sparkles, Star, Trash2, TrendingUp, UserRoundX,
 } from "lucide-react";
 
 export interface GradeTableStudent {
@@ -67,6 +74,8 @@ interface GradeTableProps {
   onOpenRubric: (assessment: GradeTableAssessment, hasRubric: boolean) => void;
   onOpenRubricEval?: (assessment: GradeTableAssessment, studentId?: string) => void;
   onCopyAssessment?: (assessment: GradeTableAssessment) => void;
+  onOpenReport?: (studentId: string) => void;
+  onOpenProgress?: (studentId: string) => void;
   onOpenNotes: (studentId: string) => void;
   onEditStudent: (studentId: string) => void;
   onOpenException: (studentId: string, studentName: string) => void;
@@ -107,6 +116,8 @@ export function GradeTable({
   onOpenRubric,
   onOpenRubricEval,
   onCopyAssessment,
+  onOpenReport,
+  onOpenProgress,
   onOpenNotes,
   onEditStudent,
   onOpenException,
@@ -160,65 +171,33 @@ export function GradeTable({
   const currentAssessments = (trimester?.assessments ?? []).filter((a) => !a.studentId);
   const nonExtra = currentAssessments.filter((a) => !a.isExtra);
 
-  // Cálculo de penalizaciones por alumno — solo cuenta las del trimestre activo
-  const getStudentPenalty = (student: GradeTableStudent, forTrimesterId?: string) => {
-    const tid = forTrimesterId ?? currentTrimesterId;
-    const relevant = student.absences.filter(
-      (a) => !a.trimesterId || a.trimesterId === tid
-    );
-    const absCount = relevant.filter((a) => a.type === "ABSENT" || a.type === "A").length;
-    const lateCount = relevant.filter((a) => a.type === "LATE" || a.type === "R").length;
-    const negCount = relevant.filter((a) => a.type === "NEGATIVE" || a.type === "N").length;
-    return (absCount * penaltyAbsence) + (lateCount * penaltyLate) + (negCount * penaltyNegative);
+  // Penalizaciones configuradas del grupo
+  const penalties: StatPenalties = {
+    absence: penaltyAbsence,
+    late: penaltyLate,
+    negative: penaltyNegative,
   };
 
-  // Nota final ponderada del alumno (con penalizaciones por trimestre)
-  const studentFinalAverage = (student: GradeTableStudent): number | null => {
-    let sum = 0;
-    let weightSum = 0;
-    for (const t of trimesters) {
-      // Evaluaciones globales + personalizadas del alumno en este trimestre
-      const tas = [
-        ...t.assessments.filter((a) => !a.isExtra && !a.studentId),
-        ...t.assessments.filter((a) => !a.isExtra && a.studentId === student.id),
-      ];
-      // Excluir tareas con excepción
-      const useful = tas.filter(
-        (a) => !student.exceptions.find((e) => e.assessmentId === a.id && e.isExcluded)
-      );
-      const graded = useful.filter(
-        (a) => student.grades.find((g) => g.assessmentId === a.id)?.score != null
-      );
-      if (graded.length === 0) continue;
-      const avg =
-        graded.reduce((acc, a) => {
-          const g = student.grades.find((x) => x.assessmentId === a.id);
-          return acc + (g?.score ?? 0);
-        }, 0) / graded.length;
-      // Aplicar penalización específica de este trimestre
-      const penalty = getStudentPenalty(student, t.id);
-      const penalizedAvg = penalty > 0 ? Math.max(0, avg - penalty) : avg;
-      sum += penalizedAvg * (t.percentage / 100);
-      weightSum += t.percentage / 100;
-    }
+  // Cálculo de penalizaciones por alumno — solo cuenta las del trimestre indicado
+  const getStudentPenalty = (student: GradeTableStudent, forTrimesterId?: string) =>
+    calcPenalty(student, forTrimesterId ?? currentTrimesterId, penalties);
 
-    if (weightSum <= 0) return null;
-    return sum / weightSum;
+  // Nota final ponderada del alumno (con penalizaciones por trimestre)
+  const studentFinalAverage = (student: GradeTableStudent): number | null =>
+    calcFinalAverage(student, trimesters, penalties);
+
+  // Media del trimestre activo con penalización aplicada
+  const studentTrimesterAverage = (student: GradeTableStudent, trimesterId: string): number | null => {
+    const t = trimesters.find((x) => x.id === trimesterId);
+    if (!t) return null;
+    return calcTrimesterAverage(student, t, penalties);
   };
 
   // Nota máxima obtenible por trimestre (promedio de maxScore de las tareas evaluables, sin penalización)
   const getTrimesterMax = (student: GradeTableStudent, trimesterId: string): number | null => {
     const t = trimesters.find((x) => x.id === trimesterId);
     if (!t) return null;
-    const tas = [
-      ...t.assessments.filter((a) => !a.isExtra && !a.studentId),
-      ...t.assessments.filter((a) => !a.isExtra && a.studentId === student.id),
-    ];
-    const useful = tas.filter(
-      (a) => !student.exceptions.find((e) => e.assessmentId === a.id && e.isExcluded)
-    );
-    if (useful.length === 0) return null;
-    return useful.reduce((acc, a) => acc + (a.maxScore || 0), 0) / useful.length;
+    return calcTrimesterMax(student, t);
   };
 
   // Agrupación por caso de excepción
@@ -416,19 +395,7 @@ export function GradeTable({
             ...(trimester.assessments || []).filter((a) => a.studentId === student.id),
           ];
 
-          const mGraded = studentAssessments
-            .filter((a) => !a.isExtra && !student.exceptions.some((e) => e.assessmentId === a.id && e.isExcluded))
-            .filter((a) => student.grades.find((g) => g.assessmentId === a.id)?.score != null);
-
-          const rawAvg =
-            mGraded.length > 0
-              ? mGraded.reduce((acc, a) => {
-                  const g = student.grades.find((x) => x.assessmentId === a.id);
-                  return acc + (g?.score ?? 0);
-                }, 0) / mGraded.length
-              : null;
-
-          const mAvg = rawAvg !== null ? (penalty > 0 ? Math.max(0, rawAvg - penalty) : rawAvg) : null;
+          const mAvg = studentTrimesterAverage(student, currentTrimesterId);
           const mFinal = studentFinalAverage(student);
           const mMaxObtenible = getTrimesterMax(student, currentTrimesterId);
 
@@ -468,6 +435,16 @@ export function GradeTable({
                       <DropdownMenuItem onClick={() => onOpenNotes(student.id)}>
                         <ScrollText className="mr-2 h-4 w-4" /> Notas del alumno
                       </DropdownMenuItem>
+                      {onOpenReport && (
+                        <DropdownMenuItem onClick={() => onOpenReport(student.id)}>
+                          <FileText className="mr-2 h-4 w-4" /> Boletín del alumno
+                        </DropdownMenuItem>
+                      )}
+                      {onOpenProgress && (
+                        <DropdownMenuItem onClick={() => onOpenProgress(student.id)}>
+                          <TrendingUp className="mr-2 h-4 w-4" /> Evolución del alumno
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuItem
                         className="text-destructive"
                         onClick={() => handleDeleteStudent(student.id, `${student.name} ${student.surname1}`)}
@@ -833,6 +810,16 @@ export function GradeTable({
                               <DropdownMenuItem onClick={() => onOpenNotes(student.id)}>
                                 <ScrollText className="mr-2 h-4 w-4" /> Notas del alumno
                               </DropdownMenuItem>
+                              {onOpenReport && (
+                                <DropdownMenuItem onClick={() => onOpenReport(student.id)}>
+                                  <FileText className="mr-2 h-4 w-4" /> Boletín del alumno
+                                </DropdownMenuItem>
+                              )}
+                              {onOpenProgress && (
+                                <DropdownMenuItem onClick={() => onOpenProgress(student.id)}>
+                                  <TrendingUp className="mr-2 h-4 w-4" /> Evolución del alumno
+                                </DropdownMenuItem>
+                              )}
                               <DropdownMenuItem
                                 className="text-destructive"
                                 onClick={() => handleDeleteStudent(student.id, `${student.name} ${student.surname1}`)}
@@ -1137,6 +1124,24 @@ export function GradeTable({
             <ScrollText className="h-4 w-4" />
             Notas y Anotaciones
           </button>
+          {onOpenReport && (
+            <button
+              className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent"
+              onClick={() => onOpenReport(contextMenu.studentId)}
+            >
+              <FileText className="h-4 w-4" />
+              Boletín del alumno
+            </button>
+          )}
+          {onOpenProgress && (
+            <button
+              className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent"
+              onClick={() => onOpenProgress(contextMenu.studentId)}
+            >
+              <TrendingUp className="h-4 w-4" />
+              Evolución del alumno
+            </button>
+          )}
           <button
             className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent"
             onClick={() => onEditStudent(contextMenu.studentId)}
