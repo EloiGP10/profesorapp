@@ -20,7 +20,7 @@ import {
 } from "@/lib/student-stats";
 import {
   AlertCircle, CalendarX2, Check, ClipboardCopy, Copy, FileText, Info, Loader2, Minus, Pencil, Plus,
-  ScrollText, Settings2, Sparkles, Star, Trash2, TrendingUp, UserRoundX,
+  ScrollText, Settings2, Sparkles, Star, Trash2, TrendingUp, UserRoundX, Users,
 } from "lucide-react";
 
 export interface GradeTableStudent {
@@ -450,7 +450,7 @@ export function GradeTable({
                       )}
                       {onOpenFamily && (
                         <DropdownMenuItem onClick={() => onOpenFamily(student.id)}>
-                          <UserRoundX className="mr-2 h-4 w-4" /> Informes para familia
+                          <Users className="mr-2 h-4 w-4" /> Informes para familia
                         </DropdownMenuItem>
                       )}
                       <DropdownMenuItem
