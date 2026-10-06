@@ -449,7 +449,7 @@ export function GradeTable({
                       )}
                       {onOpenFamily && (
                         <DropdownMenuItem onClick={() => onOpenFamily(student.id)}>
-                          <UserRoundX className="mr-2 h-4 w-4" /> Informes para familia
+                          <UserRoundX className="mr-2 h-4 w-4" /> 🧪 TEST Informes familia
                         </DropdownMenuItem>
                       )}
                       <DropdownMenuItem
