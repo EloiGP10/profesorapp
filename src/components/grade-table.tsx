@@ -447,9 +447,11 @@ export function GradeTable({
                           <TrendingUp className="mr-2 h-4 w-4" /> Evolución del alumno
                         </DropdownMenuItem>
                       )}
-                      <DropdownMenuItem onClick={() => onOpenFamily?.(student.id)}>
-                        <UserRoundX className="mr-2 h-4 w-4" /> 🧪 TEST Informes familia
-                      </DropdownMenuItem>
+                      {onOpenFamily && (
+                        <DropdownMenuItem onClick={() => onOpenFamily(student.id)}>
+                          <UserRoundX className="mr-2 h-4 w-4" /> Informes para familia
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuItem
                         className="text-destructive"
                         onClick={() => handleDeleteStudent(student.id, `${student.name} ${student.surname1}`)}
