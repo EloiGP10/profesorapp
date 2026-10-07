@@ -16,10 +16,11 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ProfileDialog } from "@/components/profile-dialog";
+import { ContactDialog } from "@/components/contact-dialog";
 import { toast } from "sonner";
 import {
   GraduationCap, Plus, Users, BookOpen, LogOut, Loader2, MoreVertical, Trash2,
-  Copy, User, Sparkles,
+  Copy, User, Sparkles, MessageSquare,
 } from "lucide-react";
 
 interface Group {
@@ -38,6 +39,7 @@ export default function DashboardPage() {
   const [creating, setCreating] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogProfile, setDialogProfile] = useState(false);
+  const [dialogContact, setDialogContact] = useState(false);
   const [newGroupName, setNewGroupName] = useState("");
   const [newGroupCode, setNewGroupCode] = useState("");
   const [userName, setUserName] = useState<string | null>(null);
@@ -183,6 +185,15 @@ export default function DashboardPage() {
             >
               <User className="h-4 w-4 text-primary" />
               <span>Mi Perfil</span>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setDialogContact(true)}
+              className="flex items-center gap-1.5"
+            >
+              <MessageSquare className="h-4 w-4" />
+              <span className="hidden sm:inline">Ayuda</span>
             </Button>
             <Button variant="ghost" size="sm" onClick={handleLogout}>
               <LogOut className="mr-1.5 h-4 w-4" />
@@ -346,6 +357,9 @@ export default function DashboardPage() {
         onOpenChange={setDialogProfile}
         onProfileUpdated={(u) => setUserName(u.name || u.email.split("@")[0])}
       />
+
+      {/* Diálogo de contacto */}
+      <ContactDialog open={dialogContact} onOpenChange={setDialogContact} />
 
       {/* Diálogo para clonar grupo */}
       <Dialog open={Boolean(cloneDialog)} onOpenChange={(o) => !o && setCloneDialog(null)}>

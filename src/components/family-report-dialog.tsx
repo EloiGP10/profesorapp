@@ -6,6 +6,7 @@ import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { track } from "@/components/analytics";
 import { FileSpreadsheet, Link2, Printer } from "lucide-react";
 import * as XLSX from "xlsx";
 import {
@@ -58,6 +59,8 @@ export function FamilyReportDialog({
   const [annotations, setAnnotations] = useState<any>({});
   const [commentTexts, setCommentTexts] = useState<any>(({} as any));
   const [expandedTrims, setExpandedTrims] = useState<string[]>([]);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [shareEnabled, setShareEnabled] = useState(false);
 
   // Cargar anotaciones existentes al abrir el diálogo
   useEffect(() => {
@@ -80,6 +83,16 @@ export function FamilyReportDialog({
         initial.firma = loaded.firma || "";
         setCommentTexts(initial);
         setExpandedTrims([]);
+
+        const linkRes = await fetch(
+          `/api/students/family-link?studentId=${student!.id}`,
+          { cache: "no-store" }
+        );
+        if (linkRes.ok) {
+          const linkData = await linkRes.json();
+          setShareUrl(linkData.url);
+          setShareEnabled(Boolean(linkData.shareEnabled));
+        }
       } catch {
         toast.error("Error al cargar las observaciones");
       }
@@ -231,27 +244,62 @@ export function FamilyReportDialog({
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Informes");
       toast.success("Informes exportados a Excel con observaciones");
+      track("excel_exported");
       XLSX.writeFile(wb, `Informes-${fullName(student).replace(/\s+/g, "-")}.xlsx`);
     } catch {
       toast.error("Error al exportar los informes");
     }
   };
 
-  // Copiar el enlace público para las familias
+  // Activar (o regenerar) el enlace familiar y copiarlo al portapapeles
   const handleCopyLink = async () => {
     if (!student) return;
-    const url = `${window.location.origin}/family-report/${student.id}`;
     try {
-      await navigator.clipboard.writeText(url);
-      toast.success("Enlace copiado. Ya puedes enviárselo a la familia.");
-    } catch {
-      window.prompt("Copia este enlace para la familia:", url);
+      const res = await fetch("/api/students/family-link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ studentId: student.id }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "No se pudo generar el enlace");
+      }
+      const data = await res.json();
+      setShareUrl(data.url);
+      setShareEnabled(true);
+      track("family_link_created");
+      try {
+        await navigator.clipboard.writeText(data.url);
+        toast.success("Enlace copiado. Ya puedes enviárselo a la familia.");
+      } catch {
+        toast("Enlace listo. Cópialo de la casilla de abajo.");
+      }
+    } catch (e: any) {
+      toast.error(e?.message || "No se pudo generar el enlace");
+    }
+  };
+
+  // Revocar el enlace: la familia deja de poder abrir el informe al instante
+  const handleRevokeLink = async () => {
+    if (!student) return;
+    try {
+      const res = await fetch(`/api/students/family-link?studentId=${student.id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error("No se pudo revocar el enlace");
+      setShareUrl(null);
+      setShareEnabled(false);
+      track("family_link_revoked");
+      toast.success("Enlace revocado. Ya no se puede abrir.");
+    } catch (e: any) {
+      toast.error(e?.message || "No se pudo revocar el enlace");
     }
   };
 
   // Exportar a PDF con el mismo formato que se ve en pantalla
   const handleExportPdf = () => {
     if (!student) return;
+    track("pdf_exported");
     window.print();
   };
 
@@ -404,7 +452,7 @@ export function FamilyReportDialog({
                 className="flex-1 min-w-52"
               >
                 <Link2 className="mr-2 h-4 w-4" />
-                Copiar enlace para la familia
+                {shareEnabled ? "Copiar enlace" : "Generar enlace familiar"}
               </Button>
               <Button
                 type="button"
@@ -425,6 +473,35 @@ export function FamilyReportDialog({
                 Descargar Excel con notas
               </Button>
             </div>
+
+            {/* Enlace familiar: generar, copiar y revocar */}
+            {shareUrl ? (
+              <div className="rounded-lg border border-emerald-300 bg-emerald-50/60 p-3 dark:border-emerald-800 dark:bg-emerald-950/30">
+                <p className="mb-2 text-sm font-medium text-emerald-900 dark:text-emerald-200">
+                  Enlace familiar activo
+                </p>
+                <p className="mb-2 text-xs text-emerald-800/80 dark:text-emerald-300/80">
+                  Cualquiera con este enlace puede ver el informe. No lo publiques.
+                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <code className="min-w-0 flex-1 truncate rounded bg-white/70 px-2 py-1 font-mono text-xs dark:bg-black/30">
+                    {shareUrl}
+                  </code>
+                  <Button type="button" size="sm" variant="outline" onClick={handleCopyLink}>
+                    <Link2 className="mr-1.5 h-3.5 w-3.5" />
+                    Copiar
+                  </Button>
+                  <Button type="button" size="sm" variant="outline" onClick={handleRevokeLink}>
+                    Revocar
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <p className="rounded-lg border border-dashed p-3 text-xs text-muted-foreground">
+                No hay enlace familiar activo. Al generarlo, la familia podrá ver el
+                informe sin necesidad de cuenta.
+              </p>
+            )}
           </div>
         )}
 

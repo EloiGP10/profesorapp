@@ -4,9 +4,31 @@ import { NextRequest, NextResponse } from "next/server";
 
 export const SESSION_COOKIE = "profesorapp_session";
 const SESSION_DURATION = 60 * 60 * 24 * 7; // 7 días
-const secret = new TextEncoder().encode(
-  process.env.SESSION_SECRET || "profesorapp_session_secret_default_2026"
-);
+
+/**
+ * Secreto de firma de sesión.
+ *
+ * Si no está definido, la aplicación NO arranca. Con un valor por defecto
+ * cualquiera que conozca ese valor podría forjar un JWT con el userId que
+ * quiera y acceder a los datos de otro profesor, así que es crítico que
+ * SESSION_SECRET sea único y aleatorio en cada despliegue.
+ */
+function getSessionSecret(): Uint8Array {
+  const secret = process.env.SESSION_SECRET;
+  if (!secret || secret.trim().length < 32) {
+    throw new Error(
+      "SESSION_SECRET no está definido o es demasiado corto (mínimo 32 caracteres). " +
+        "Genera uno con: openssl rand -base64 48"
+    );
+  }
+  return new TextEncoder().encode(secret);
+}
+
+let cachedSecret: Uint8Array | null = null;
+function sessionSecret(): Uint8Array {
+  if (!cachedSecret) cachedSecret = getSessionSecret();
+  return cachedSecret;
+}
 
 export interface SessionPayload {
   userId: string;
@@ -19,12 +41,12 @@ export async function signSession(payload: SessionPayload): Promise<string> {
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime(Math.floor(Date.now() / 1000) + SESSION_DURATION)
-    .sign(secret);
+    .sign(sessionSecret());
 }
 
 export async function verifySession(token: string): Promise<SessionPayload | null> {
   try {
-    const { payload } = await jwtVerify(token, secret);
+    const { payload } = await jwtVerify(token, sessionSecret());
     if (typeof payload.userId !== "string" || !payload.userId) return null;
     return {
       userId: payload.userId,

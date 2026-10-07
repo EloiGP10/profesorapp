@@ -89,6 +89,12 @@ model Student {
   status            String        @default("ACTIVE") // ACTIVE | INACTIVE | TRANSFERRED
   dateOfBirth       DateTime?
 
+  // Enlace público del informe familiar. Token aleatorio de 32 bytes: cambiar
+  // el studentId no basta para acceder, hay que poseer el enlace. Se puede
+  // revocar poniendo shareToken a null (p. ej. si la familia lo pierde).
+  shareToken        String?       @unique
+  shareEnabled      Boolean       @default(false)
+
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
   grades            Grade[]
@@ -115,6 +121,7 @@ model Student {
   @@index([surname1])
   @@index([status])
   @@index([createdAt])
+  @@index([shareToken])
   @@schema("profesorapp")
 }
 
@@ -859,6 +866,53 @@ model AuditLog {
   @@index([action])
   @@index([entityType, entityId])
   @@index([createdAt])
+  @@schema("profesorapp")
+}
+
+/// Evento de analítica de producto. Se escribe desde el cliente y se agrega
+/// en /dashboard/analytics. Guardamos el userId para métricas de uso por
+/// profesor, pero nunca el contenido de lo que el profesor escribe: aquí solo
+/// van nombres de acción y rutas, no datos de alumnos.
+model AnalyticsEvent {
+  id        String   @id @default(cuid())
+  userId    String?
+  name      String
+  path      String?
+  props     Json?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([name])
+  @@index([userId])
+  @@schema("profesorapp")
+}
+
+/// Error de cliente registrado para detectar rutas rotas o acciones que fallan.
+model ClientError {
+  id        String   @id @default(cuid())
+  userId    String?
+  message   String
+  stack     String?
+  path      String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@schema("profesorapp")
+}
+
+model ContactMessage {
+  id        String   @id @default(cuid())
+  name      String
+  email     String?
+  subject   String?
+  message   String
+  userId    String?
+  createdAt DateTime @default(now())
+  readAt    DateTime?
+
+  @@index([createdAt])
+  @@index([readAt])
   @@schema("profesorapp")
 }
 

@@ -2,8 +2,13 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { signSession, setAuthCookie } from "@/lib/session";
+import { rateLimit, LIMITS } from "@/lib/rate-limit";
+import { checkPasswordStrength } from "@/lib/password";
 
 export async function POST(request: Request) {
+  const limited = rateLimit(request, "register", LIMITS.register);
+  if (limited) return limited;
+
   try {
     const { email, password, name } = await request.json();
 
@@ -15,9 +20,10 @@ export async function POST(request: Request) {
       );
     }
 
-    if (String(password).length < 6) {
+    const passwordCheck = checkPasswordStrength(String(password));
+    if (!passwordCheck.ok) {
       return NextResponse.json(
-        { error: "La contraseña debe tener al menos 6 caracteres" },
+        { error: passwordCheck.error },
         { status: 400 }
       );
     }
@@ -33,7 +39,8 @@ export async function POST(request: Request) {
       );
     }
 
-    const passwordHash = await bcrypt.hash(String(password), 10);
+    // Coste 12: bastante más lento de romper por fuerza bruta y aceptable en login.
+    const passwordHash = await bcrypt.hash(String(password), 12);
 
     const user = await prisma.user.create({
       data: {

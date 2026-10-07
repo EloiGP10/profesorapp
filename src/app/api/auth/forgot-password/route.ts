@@ -2,8 +2,12 @@ import { NextResponse } from "next/server";
 import { randomBytes } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
+import { rateLimit, LIMITS } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
+  const limited = rateLimit(request, "password-reset", LIMITS.passwordReset);
+  if (limited) return limited;
+
   try {
     const body = await request.json();
     const { email } = body;
@@ -36,7 +40,23 @@ export async function POST(request: Request) {
       data: { resetToken, resetTokenExpiry },
     });
 
-    const resetUrl = `https://profesorapp.51.170.52.210.sslip.io/reset-password?token=${resetToken}`;
+    const baseUrl =
+      process.env.APP_URL?.replace(/\/$/, "") ||
+      (process.env.NODE_ENV === "production"
+        ? ""
+        : "http://localhost:3000");
+
+    if (!baseUrl) {
+      // Sin APP_URL no se puede construir un enlace válido. Es preferible fallar
+      // a enviar un correo con un enlace que no lleva a ningún sitio.
+      console.error("[forgot-password] Falta la variable de entorno APP_URL");
+      return NextResponse.json(
+        { error: "Error interno. Inténtalo más tarde." },
+        { status: 500 }
+      );
+    }
+
+    const resetUrl = `${baseUrl}/reset-password?token=${resetToken}`;
     const html = `
 <!DOCTYPE html>
 <html>

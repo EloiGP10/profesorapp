@@ -2,8 +2,12 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { signSession, setAuthCookie } from "@/lib/session";
+import { rateLimit, LIMITS } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
+  const limited = rateLimit(request, "login", LIMITS.login);
+  if (limited) return limited;
+
   try {
     const { email, password } = await request.json();
 

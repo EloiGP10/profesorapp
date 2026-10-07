@@ -41,8 +41,10 @@ export default async function FamilyReportPage({
 }: {
   params: { studentId: string };
 }) {
-  const student = await prisma.student.findUnique({
-    where: { id: params.studentId },
+  // La ruta recibe el shareToken, no el studentId. Se busca por token para no
+  // filtrar por id: así no se puede recorrer el listado de alumnos probando ids.
+  const student = await prisma.student.findFirst({
+    where: { shareToken: params.studentId, shareEnabled: true },
     include: {
       group: {
         include: {
