@@ -48,6 +48,8 @@ export async function GET(request: Request) {
   const resultado: {
     conectado: boolean;
     consultaGrupos?: string;
+    diff?: string;
+    diffError?: string;
     errorConsulta?: string;
     error?: string;
     errorCode?: string;
@@ -91,6 +93,31 @@ export async function GET(request: Request) {
   } catch (e: any) {
     resultado.consultaGrupos = "fallo";
     resultado.errorConsulta = String(e?.message ?? e).slice(0, 400);
+  }
+
+  // Diff real entre la base de datos y el schema. `migrate diff` no exige
+  //Flags y siempre imprime el SQL, así que deja ver QUÉ se considera
+  // destructivo y por qué `db push` se niega.
+  if (resultado.faltan.length > 0 && process.env.DATABASE_URL) {
+    try {
+      const { stdout } = await exec(
+        "npx",
+        [
+          "prisma",
+          "migrate",
+          "diff",
+          "--from-url",
+          process.env.DATABASE_URL,
+          "--to-schema-datamodel",
+          "prisma/schema.prisma",
+          "--script",
+        ],
+        { timeout: 180_000, maxBuffer: 16 * 1024 * 1024, cwd: process.cwd() }
+      );
+      resultado.diff = stdout.slice(0, 12000);
+    } catch (e: any) {
+      resultado.diffError = `${e?.message ?? e}`.slice(0, 500);
+    }
   }
 
   return NextResponse.json(resultado);
