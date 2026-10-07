@@ -36,7 +36,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogProfile, setDialogProfile] = useState(false);
@@ -70,12 +70,16 @@ export default function DashboardPage() {
         setGroups(data);
       } else {
         // Fallo silencioso: antes se comia el error y el panel aparecia
-        // vacio, que parece que se han perdido los grupos. Ahora se avisa.
-        setLoadError(true);
+        // vacio, que parece que se han perdido los grupos. Ahora se avisa y
+        // se muestra el motivo que devuelve el servidor.
+        const data = await res.json().catch(() => ({}));
+        setLoadError(data.error ?? `El servidor respondió ${res.status}`);
       }
     } catch (error) {
       console.error("Error loading groups:", error);
-      setLoadError(true);
+      setLoadError(
+        error instanceof Error ? error.message : "No se pudo contactar con el servidor"
+      );
     } finally {
       setLoading(false);
     }
@@ -210,22 +214,23 @@ export default function DashboardPage() {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        {loadError && (
+        {loadError !== null && (
           <div className="mb-6 rounded-lg border border-destructive/40 bg-destructive/5 p-4">
             <p className="font-medium text-destructive">
               No se han podido cargar tus grupos
             </p>
             <p className="mt-1 text-sm text-muted-foreground">
-              Tus datos están a salvo: es un problema de conexión con la base de
-              datos o de versión del esquema. Recarga la página en unos segundos;
-              si persiste, revisa los logs del despliegue.
+              Tus datos están a salvo. El motivo exacto del fallo es:
+              <code className="mt-2 block break-words rounded bg-background p-2 text-xs">
+                {loadError}
+              </code>
             </p>
             <Button
               variant="outline"
               size="sm"
               className="mt-3"
               onClick={() => {
-                setLoadError(false);
+                setLoadError(null);
                 setLoading(true);
                 loadGroups();
               }}
@@ -296,10 +301,10 @@ export default function DashboardPage() {
                 <BookOpen className="h-8 w-8 text-muted-foreground" />
               </div>
               <h3 className="text-lg font-semibold mb-2">
-                {loadError ? "No se han podido cargar tus grupos" : "No tienes grupos aún"}
+                {loadError !== null ? "No se han podido cargar tus grupos" : "No tienes grupos aún"}
               </h3>
               <p className="text-muted-foreground mb-4 max-w-md">
-                {loadError
+                {loadError !== null
                   ? "No es que no tengas grupos: la carga falló. Tus datos siguen guardados. Reintenta en unos segundos."
                   : "Crea tu primer grupo para empezar a gestionar tus alumnos y evaluaciones."}
               </p>
