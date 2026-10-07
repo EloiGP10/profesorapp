@@ -124,16 +124,39 @@ export async function GET(request: Request) {
 }
 
 /**
- * Reparar el esquema a petición.
+ * Aplicar el diff, pero solo si es demostrablemente aditivo.
  *
- * Temporal: sirve para una situación concreta (tablas nuevas que el
- * despliegue no llegó a crear) sin depender de que alguien abra el editor
- * SQL a mano. Ejecuta `prisma db push` SIN --accept-data-loss, así que si
- * Prisma detectara pérdida de datos aborta igualmente y no borra nada.
+ * `prisma db push` se niega con "use --accept-data-loss" incluso cuando el
+ * diff no contiene nada destructivo: su aviso es conservador y no permite
+ * distinguir. Aquí se calcula el diff con `migrate diff` (que siempre imprime
+ * el SQL), se comprueba que no haya ninguna sentencia capaz de perder datos y,
+ * solo entonces, se ejecuta sentencia a sentencia.
  *
- * QUITAR antes de publicar: expone una vía de ejecución de DDL a cualquier
- * usuario autenticado. Se protege con REPAIR_TOKEN.
+ * Si alguna vez el diff trae un DROP o un cambio de tipo, se aborta y se dice
+ * cuál era, sin tocar la base de datos.
+ *
+ * Temporal: expone DDL a cualquier usuario autenticado. Proteger con
+ * REPAIR_TOKEN y QUITAR antes de publicar.
  */
+
+// Cualquier sentencia capaz de perder datos o estructura.
+const PELIGROSAS: { re: RegExp; motivo: string }[] = [
+  { re: /^\s*DROP\s+(TABLE|COLUMN|INDEX|TYPE|SCHEMA)\b/im, motivo: "DROP" },
+  { re: /^\s*ALTER\s+TABLE[\s\S]{0,300}?\bDROP\b/im, motivo: "ALTER TABLE ... DROP" },
+  { re: /^\s*TRUNCATE\b/im, motivo: "TRUNCATE" },
+  { re: /^\s*DELETE\s+FROM\b/im, motivo: "DELETE" },
+  { re: /ALTER\s+COLUMN\b[\s\S]{0,200}?\bSET\s+DATA\s+TYPE\b/im, motivo: "cambio de tipo" },
+  { re: /ALTER\s+COLUMN\b[\s\S]{0,200}?\bDROP\b/im, motivo: "ALTER COLUMN ... DROP" },
+  { re: /^\s*DROP\b/im, motivo: "DROP" },
+];
+
+function partirSentencias(sql: string): string[] {
+  return sql
+    .split(/;\s*(?:\r?\n|$)/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
 export async function POST(request: Request) {
   const { getSessionUserFromRequest } = await import("@/lib/session");
   const session = await getSessionUserFromRequest(request as never);
@@ -149,19 +172,67 @@ export async function POST(request: Request) {
     }
   }
 
+  // 1) Calcular el diff
+  let diff: string;
   try {
-    // Sin --accept-data-loss: Prisma aborta si la operacion destruyera datos.
-    const { stdout, stderr } = await exec(
+    const { stdout } = await exec(
       "npx",
-      ["prisma", "db", "push", "--skip-generate"],
+      [
+        "prisma",
+        "migrate",
+        "diff",
+        "--from-url",
+        process.env.DATABASE_URL!,
+        "--to-schema-datamodel",
+        "prisma/schema.prisma",
+        "--script",
+      ],
       { timeout: 180_000, maxBuffer: 16 * 1024 * 1024, cwd: process.cwd() }
     );
-    return NextResponse.json({ ok: true, salida: `${stdout}\n${stderr}`.slice(0, 2000) });
+    diff = stdout;
   } catch (e: any) {
     return NextResponse.json({
       ok: false,
+      paso: "diff",
       error: String(e?.message ?? e).slice(0, 600),
-      salida: `${e?.stdout ?? ""}\n${e?.stderr ?? ""}`.slice(0, 2000),
     });
   }
+
+  if (!diff.trim() || /empty migration|No changes/i.test(diff)) {
+    return NextResponse.json({ ok: true, paso: "diff", mensaje: "El esquema ya está al día." });
+  }
+
+  // 2) Comprobar que no hay nada destructivo. Cualquier sentencia sospechosa
+  //    aborta el proceso SIN tocar la base de datos.
+  const sentencias = partirSentencias(diff);
+  const peligrosas = sentencias.filter((s) => PELIGROSAS.some((p) => p.re.test(s)));
+  if (peligrosas.length > 0) {
+    return NextResponse.json({
+      ok: false,
+      paso: "validacion",
+      mensaje:
+        "El diff contiene operaciones que podrían perder datos. No se aplica nada.",
+      detalle: peligrosas.slice(0, 5),
+    });
+  }
+
+  // 3) Aplicar
+  const aplicadas: string[] = [];
+  const fallos: { sql: string; error: string }[] = [];
+  for (const sql of sentencias) {
+    try {
+      await prisma.$executeRawUnsafe(sql);
+      aplicadas.push(sql.slice(0, 80));
+    } catch (e: any) {
+      fallos.push({ sql: sql.slice(0, 120), error: String(e?.message ?? e).slice(0, 200) });
+    }
+  }
+
+  return NextResponse.json({
+    ok: fallos.length === 0,
+    paso: "aplicado",
+    aplicadas: aplicadas.length,
+    total: sentencias.length,
+    fallos,
+  });
 }

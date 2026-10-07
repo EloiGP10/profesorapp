@@ -64,10 +64,18 @@ export default function DashboardPage() {
       const res = await fetch("/api/health", { method: "POST" });
       const data = await res.json().catch(() => ({}));
       if (data.ok) {
-        setRepairMsg("Esquema aplicado. Recargando...");
+        setRepairMsg(
+          `Esquema actualizado (${data.aplicadas} cambios). Recargando...`
+        );
         setTimeout(() => window.location.reload(), 1200);
       } else {
-        setRepairMsg(data.error || "No se pudo aplicar el esquema");
+        setRepairMsg(
+          [data.mensaje || data.error || "No se pudo aplicar el esquema",
+           data.detalle ? JSON.stringify(data.detalle).slice(0, 300) : null,
+           data.fallos ? JSON.stringify(data.fallos).slice(0, 300) : null]
+            .filter(Boolean)
+            .join(" ")
+        );
       }
     } catch {
       setRepairMsg("Error de conexión al intentar reparar");
