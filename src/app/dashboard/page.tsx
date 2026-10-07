@@ -36,6 +36,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [creating, setCreating] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogProfile, setDialogProfile] = useState(false);
@@ -67,9 +68,14 @@ export default function DashboardPage() {
       if (res.ok) {
         const data = await res.json();
         setGroups(data);
+      } else {
+        // Fallo silencioso: antes se comia el error y el panel aparecia
+        // vacio, que parece que se han perdido los grupos. Ahora se avisa.
+        setLoadError(true);
       }
     } catch (error) {
       console.error("Error loading groups:", error);
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -204,6 +210,31 @@ export default function DashboardPage() {
       </header>
 
       <main className="container mx-auto px-4 py-8">
+        {loadError && (
+          <div className="mb-6 rounded-lg border border-destructive/40 bg-destructive/5 p-4">
+            <p className="font-medium text-destructive">
+              No se han podido cargar tus grupos
+            </p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Tus datos están a salvo: es un problema de conexión con la base de
+              datos o de versión del esquema. Recarga la página en unos segundos;
+              si persiste, revisa los logs del despliegue.
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-3"
+              onClick={() => {
+                setLoadError(false);
+                setLoading(true);
+                loadGroups();
+              }}
+            >
+              Reintentar
+            </Button>
+          </div>
+        )}
+
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-8">
           <div>
             <h2 className="text-xl sm:text-2xl font-bold tracking-tight">Mis Grupos</h2>
@@ -264,9 +295,13 @@ export default function DashboardPage() {
               <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted mb-4">
                 <BookOpen className="h-8 w-8 text-muted-foreground" />
               </div>
-              <h3 className="text-lg font-semibold mb-2">No tienes grupos aún</h3>
+              <h3 className="text-lg font-semibold mb-2">
+                {loadError ? "No se han podido cargar tus grupos" : "No tienes grupos aún"}
+              </h3>
               <p className="text-muted-foreground mb-4 max-w-md">
-                Crea tu primer grupo para empezar a gestionar tus alumnos y evaluaciones.
+                {loadError
+                  ? "No es que no tengas grupos: la carga falló. Tus datos siguen guardados. Reintenta en unos segundos."
+                  : "Crea tu primer grupo para empezar a gestionar tus alumnos y evaluaciones."}
               </p>
               <Button onClick={() => setDialogOpen(true)}>
                 <Plus className="mr-2 h-4 w-4" />

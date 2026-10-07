@@ -60,6 +60,15 @@ const DESTRUCTIVE = [
   },
 ];
 
+function firstLines(err) {
+  return `${err.stdout || ""}${err.stderr || ""}`
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .slice(-6)
+    .join(" | ") || err.message;
+}
+
 function diffDestructiveOps(sql) {
   return DESTRUCTIVE.filter((d) => d.re.test(sql)).map((d) => d.what);
 }
@@ -132,11 +141,23 @@ function push(skipGenerate) {
   const { ok, sql, error } = computeDiff();
 
   if (!ok) {
-    warn(`No se pudo calcular el diff contra la base de datos: ${error}`);
-    warn("Se omite la actualización del schema. La aplicación arranca igual.");
-    warn("Revisa la conexión a la BD o ejecuta 'npm run db:status'.");
-    if (STRICT) process.exit(1);
-    return;
+    // No se pudo calcular el diff, así que no se puede comprobar si el push
+    // sería destructivo. Aun así se intenta: `db push` SIN
+    // --accept-data-loss sigue siendo seguro, porque Prisma aborta por su
+    // cuenta si detectara pérdida de datos, y crea las tablas que falten.
+    warn(`No se pudo calcular el diff: ${error}`);
+    warn("Se intenta aplicar el schema igualmente en modo seguro.");
+    try {
+      run(["db", "push", "--skip-generate"]);
+      log("Schema aplicado.");
+      if (!skipGenerate) safeGenerate();
+      return;
+    } catch (err) {
+      warn(`No se pudo aplicar el schema: ${firstLines(err)}`);
+      warn("La aplicación arranca con el schema actual.");
+      if (STRICT) process.exit(1);
+      return;
+    }
   }
 
   writeDiff(sql);
