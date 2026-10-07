@@ -13,7 +13,8 @@
     "db:safe-push": "node scripts/db-guard.js push",
     "db:status": "node scripts/db-guard.js status",
     "db:backup": "bash scripts/db-backup.sh",
-    "prestart": "node scripts/db-guard.js push --skip-generate"
+    "prestart": "node scripts/db-guard.js push --skip-generate",
+    "test": "tsx scripts/stats.test.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
