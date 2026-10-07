@@ -116,3 +116,42 @@ cliente a `ClientError`.
 
 Durante el desarrollo, `track("nombre_evento")` está disponible en la consola
 del navegador.
+## Licencia y pago (paso final)
+
+Modelo ya preparado: `License` + `/api/license` (consulta) +
+`/api/license/webhook` (activación).
+
+Variables:
+
+| Variable | Para qué |
+|----------|----------|
+| `LICENSES_DISABLED` | `true` deja la app abierta. **En producción debe ser `false`**: es lo que convierte esto en un producto de pago. |
+| `PAYMENT_WEBHOOK_SECRET` | Secreto que valida el webhook. Si falta, el webhook devuelve 401 y no se concede ninguna licencia. |
+
+Proveedor recomendado: **Lemon Squeezy** o **Paddle**, que resuelven IVA
+europeo, facturación y reembolsos. En Lemon Squeezy el secreto se configura en
+*Webhooks* y se envía en la cabecera `X-Webhook-Secret`.
+
+### Qué significa "de por vida", y dilo explícitamente
+
+La licencia guarda `versionAtPurchase`: el comprador tiene acceso perpetuo a
+la versión que existía cuando compró. Las mejoras futuras no están incluidas,
+y eso debe estar escrito en la página de venta. Si no se dice, genera
+reclamaciones el día que dejes de mantener el producto.
+
+### Requisitos legales antes de cobrar
+
+- Política de privacidad y aviso de protección de datos (RGPO/LOPD): la
+  aplicación almacena datos de menores.
+- Checkbox de consentimiento en el registro.
+- Derecho de exportación y borrado de datos.
+- Forma de contacto (ya implementada).
+- Texto del licencia con las condiciones del pago único.
+
+### Comprobaciones tras el primer despliegue
+
+1. `SESSION_SECRET` definido y de 32+ caracteres.
+2. `APP_URL` con el dominio real.
+3. `npm run db:status` para confirmar que el schema está alineado.
+4. Backups automáticos activos en Supabase **y** backup local configurado.
+5. Enlace familiar abre sin sesión en incógnito.

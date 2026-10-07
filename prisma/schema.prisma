@@ -23,6 +23,7 @@ model User {
   appAccesses   AppAccess[]
   auditLogs     AuditLog[]
   userAppAccess UserAppAccess?
+  license      License?
   authoredNotes StudentNote[]
 
   schoolsOwned     School[]           @relation("SchoolOwner")
@@ -1002,6 +1003,29 @@ model ContactMessage {
 
   @@index([createdAt])
   @@index([readAt])
+  @@schema("profesorapp")
+}
+
+/// Licencia de por vida. Se conserva UserAppAccess por compatibilidad, pero la
+/// información de compra vive aquí: qué plan, cuándo y con qué referencia de
+/// pago, para poder reemitir un recibo años después.
+model License {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan         String   @default("PROFESOR") // PROFESOR | CENTRO
+  priceCents   Int      @default(0)
+  currency     String   @default("EUR")
+  status       String   @default("active") // active | refunded | revoked
+  purchasedAt  DateTime @default(now())
+  /// Versión del producto en el momento de la compra. El acceso es perpetuo a
+  /// esta versión aunque el producto siga evolucionando.
+  versionAtPurchase String?
+  /// Referencia del proveedor de pago, para reconciliar y reemitir recibos.
+  paymentRef   String?  @unique
+  emailSentAt  DateTime?
+
+  @@index([status])
   @@schema("profesorapp")
 }
 
