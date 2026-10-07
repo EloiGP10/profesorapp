@@ -1,3 +1,4 @@
+import { randomBytes } from "crypto";
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
@@ -15,12 +16,30 @@ const SESSION_DURATION = 60 * 60 * 24 * 7; // 7 días
  */
 function getSessionSecret(): Uint8Array {
   const secret = process.env.SESSION_SECRET;
-  if (!secret || secret.trim().length < 32) {
-    throw new Error(
-      "SESSION_SECRET no está definido o es demasiado corto (mínimo 32 caracteres). " +
-        "Genera uno con: openssl rand -base64 48"
+
+  if (!secret || !secret.trim()) {
+    // Sin secreto no hay sesiones que valgan: se genera uno por proceso para
+    // que la aplicación siga funcionando en lugar de dejar al usuario sin
+    // poder entrar. Las sesiones no sobrevivirán a un reinicio.
+    console.error(
+      "[session] SESSION_SECRET no está definido. Se genera uno temporal: " +
+        "las sesiones caducan al reiniciar el contenedor. Define SESSION_SECRET " +
+        "con: openssl rand -base64 48"
+    );
+    return new TextEncoder().encode(
+      randomBytes(32).toString("hex")
     );
   }
+
+  if (secret.trim().length < 32) {
+    // Corto pero presente: se usa tal cual para no invalidar las sesiones ya
+    // emitidas, avisando de que conviene reforzarlo.
+    console.warn(
+      `[session] SESSION_SECRET tiene solo ${secret.trim().length} caracteres. ` +
+        "Recomendable al menos 32: genera uno con openssl rand -base64 48"
+    );
+  }
+
   return new TextEncoder().encode(secret);
 }
 
