@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthenticatedUser } from "@/lib/auth";
+import { writableGroups, accessibleGroups, canManageGroup } from "@/lib/access";
 
 // GET: Listar grupos del usuario, o un grupo con datos completos (por id)
 export async function GET(request: Request) {
@@ -13,7 +14,7 @@ export async function GET(request: Request) {
 
   if (id) {
     const group = await prisma.group.findFirst({
-      where: { id, userId: user!.id },
+      where: { id, ...accessibleGroups(user!.id) },
       include: {
         students: {
           include: {
@@ -47,7 +48,7 @@ export async function GET(request: Request) {
   }
 
   const groups = await prisma.group.findMany({
-    where: { userId: user!.id },
+    where: writableGroups(user!.id),
     include: {
       _count: { select: { students: true } },
       trimesters: { orderBy: { order: "asc" } },
@@ -170,7 +171,7 @@ export async function PUT(request: Request) {
     const { id, name, code, penaltyAbsence, penaltyLate, penaltyNegative } = await request.json();
 
     const group = await prisma.group.findFirst({
-      where: { id, userId: user!.id },
+      where: { id, ...accessibleGroups(user!.id) },
     });
 
     if (!group) {
@@ -206,8 +207,15 @@ export async function DELETE(request: Request) {
   try {
     const { id } = await request.json();
 
+    if (!(await canManageGroup(user!.id, id))) {
+      return NextResponse.json(
+        { error: "Solo el propietario o un coordinador pueden borrar el grupo" },
+        { status: 403 }
+      );
+    }
+
     const group = await prisma.group.findFirst({
-      where: { id, userId: user!.id },
+      where: { id, ...accessibleGroups(user!.id) },
     });
 
     if (!group) {

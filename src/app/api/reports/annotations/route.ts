@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthenticatedUser } from "@/lib/auth";
+import { writableGroups } from "@/lib/access";
 
 const CATEGORY = "FAMILY_REPORT";
 
@@ -29,7 +30,7 @@ export async function GET(request: Request) {
   }
 
   const student = await prisma.student.findFirst({
-    where: { id: studentId, group: { userId: user!.id } },
+    where: { id: studentId, group: writableGroups(user!.id) },
     select: { id: true },
   });
 
@@ -60,7 +61,7 @@ export async function POST(request: Request) {
     }
 
     const student = await prisma.student.findFirst({
-      where: { id: studentId, group: { userId: user!.id } },
+      where: { id: studentId, group: writableGroups(user!.id) },
       select: { id: true },
     });
 

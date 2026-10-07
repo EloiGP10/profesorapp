@@ -50,6 +50,33 @@ export async function POST(request: Request) {
       },
     });
 
+    // Aplicar invitaciones pendientes: si un coordinador le compartió un
+    // grupo a este correo antes de que existiera la cuenta, el acceso se
+    // concede ahora.
+    try {
+      const invites = await prisma.pendingGroupInvite.findMany({
+        where: { email: normalizedEmail },
+        select: { id: true, groupId: true, role: true },
+      });
+      for (const inv of invites) {
+        await prisma.appAccess.upsert({
+          where: { userId_groupId: { userId: user.id, groupId: inv.groupId } },
+          create: {
+            userId: user.id,
+            groupId: inv.groupId,
+            role: inv.role,
+            isActive: true,
+          },
+          update: { isActive: true, role: inv.role },
+        });
+        await prisma.pendingGroupInvite.delete({ where: { id: inv.id } });
+      }
+    } catch (err) {
+      // Si falla, el alta se completa igualmente: el profesor podrá pedirse el
+      // acceso de nuevo desde la interfaz.
+      console.error("[register] No se pudieron aplicar las invitaciones:", err);
+    }
+
     const token = await signSession({
       userId: user.id,
       email: user.email,

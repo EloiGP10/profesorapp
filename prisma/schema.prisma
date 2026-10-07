@@ -25,6 +25,10 @@ model User {
   userAppAccess UserAppAccess?
   authoredNotes StudentNote[]
 
+  schoolsOwned     School[]           @relation("SchoolOwner")
+  schoolMemberships SchoolMembership[]
+  rubricTemplates  RubricTemplate[]
+
   @@index([email])
   @@index([createdAt])
   @@schema("profesorapp")
@@ -49,6 +53,12 @@ model Group {
   appAccesses     AppAccess[]
   auditLogs       AuditLog[]
   schedules       Schedule[]
+  pendingInvites  PendingGroupInvite[]
+
+  // Pertenencia a un centro educativo. Nullable a propósito: los grupos ya
+  // existentes siguen funcionando sin centro y se pueden mover después.
+  schoolId        String?
+  school          School?     @relation(fields: [schoolId], references: [id], onDelete: SetNull)
 
   // FASE 0: Jerarquía académica (foreign keys opcionales para compatibilidad)
   academicYearId  String?
@@ -59,11 +69,90 @@ model Group {
   course           Course?       @relation(fields: [courseId], references: [id], onDelete: SetNull)
 
   @@index([userId])
+  @@index([schoolId])
   @@index([academicYearId])
   @@index([educationId])
   @@index([courseId])
   @@index([year])
   @@index([createdAt])
+  @@schema("profesorapp")
+}
+
+/// Centro educativo: la unidad que comparte el claustro. Un profesor puede
+/// pertenecer a varios, igual que un centro puede tener varios profesores.
+/// Invitación pendiente: se concede acceso a un grupo cuando el profesor se
+/// registra con ese correo. Evita el caso de "me han invitado pero aún no
+/// tenía cuenta".
+model PendingGroupInvite {
+  id        String   @id @default(cuid())
+  email     String
+  groupId   String
+  group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  role      String   @default("TEACHER")
+  createdAt DateTime @default(now())
+
+  @@unique([email, groupId])
+  @@index([email])
+  @@schema("profesorapp")
+}
+
+model School {
+  id         String   @id @default(cuid())
+  name       String
+  code       String?
+  city       String?
+  province   String?
+  ownerId    String
+  owner      User     @relation("SchoolOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members    SchoolMembership[]
+  groups     Group[]
+  templates  RubricTemplate[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([ownerId])
+  @@index([name])
+  @@schema("profesorapp")
+}
+
+/// Rol dentro del centro. ADMIN gestiona miembros y grupos; COORDINATOR
+/// gestiona grupos y borradores; TEACHER trabaja con sus grupos; VIEWER solo
+/// consulta.
+model SchoolMembership {
+  id        String   @id @default(cuid())
+  schoolId  String
+  school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      String   @default("TEACHER") // ADMIN | COORDINATOR | TEACHER | VIEWER
+  createdAt DateTime @default(now())
+
+  @@unique([schoolId, userId])
+  @@index([userId])
+  @@index([schoolId])
+  @@schema("profesorapp")
+}
+
+/// Rúbrica reutilizable. Puede ser privada de un profesor o compartida con el
+/// centro, para no reescribir los criterios cada curso.
+model RubricTemplate {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  subject     String?
+  level       String?
+  rows        Json
+  isShared    Boolean  @default(false)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  schoolId    String?
+  school      School?  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([schoolId])
+  @@index([isShared])
   @@schema("profesorapp")
 }
 

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthenticatedUser } from "@/lib/auth";
+import { writableGroups } from "@/lib/access";
 
 // POST: Crear o actualizar una calificación (upsert)
 export async function POST(request: Request) {
@@ -14,7 +15,7 @@ export async function POST(request: Request) {
       where: {
         studentId,
         assessmentId,
-        student: { group: { userId: user!.id } },
+        student: { group: writableGroups(user!.id) },
       },
     });
 
@@ -49,7 +50,7 @@ export async function PUT(request: Request) {
     const { id, score } = await request.json();
 
     const found = await prisma.grade.findFirst({
-      where: { id, student: { group: { userId: user!.id } } },
+      where: { id, student: { group: writableGroups(user!.id) } },
     });
 
     if (!found) {

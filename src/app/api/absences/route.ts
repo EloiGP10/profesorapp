@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthenticatedUser } from "@/lib/auth";
+import { writableGroups } from "@/lib/access";
 
 // GET: Listar faltas de un estudiante (opcionalmente filtrado por trimestre)
 export async function GET(request: Request) {
@@ -12,7 +13,7 @@ export async function GET(request: Request) {
   const trimesterId = searchParams.get("trimesterId");
 
   const student = await prisma.student.findFirst({
-    where: { id: studentId ?? "", group: { userId: user!.id } },
+    where: { id: studentId ?? "", group: writableGroups(user!.id) },
     select: { id: true },
   });
 
@@ -40,7 +41,7 @@ export async function POST(request: Request) {
     const { studentId, date, type, notes, trimesterId } = await request.json();
 
     const student = await prisma.student.findFirst({
-      where: { id: studentId, group: { userId: user!.id } },
+      where: { id: studentId, group: writableGroups(user!.id) },
       select: { id: true },
     });
 
@@ -51,7 +52,7 @@ export async function POST(request: Request) {
     // Verificar que el trimestre pertenece al mismo grupo si se proporciona
     if (trimesterId) {
       const trimester = await prisma.trimester.findFirst({
-        where: { id: trimesterId, group: { userId: user!.id } },
+        where: { id: trimesterId, group: writableGroups(user!.id) },
         select: { id: true },
       });
       if (!trimester) {
@@ -84,7 +85,7 @@ export async function DELETE(request: Request) {
     const { id } = await request.json();
 
     const found = await prisma.absence.findFirst({
-      where: { id, student: { group: { userId: user!.id } } },
+      where: { id, student: { group: writableGroups(user!.id) } },
     });
 
     if (!found) {

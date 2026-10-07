@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { signSession, setAuthCookie } from "@/lib/session";
+import { writableGroups } from "@/lib/access";
 
 // GET: Obtener datos de perfil y estadísticas del docente
 export async function GET() {
@@ -29,7 +30,7 @@ export async function GET() {
   }
 
   const studentCount = await prisma.student.count({
-    where: { group: { userId: user!.id } },
+    where: { group: writableGroups(user!.id) },
   });
 
   return NextResponse.json({

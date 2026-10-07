@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthenticatedUser } from "@/lib/auth";
+import { writableGroups } from "@/lib/access";
 
 // GET: Listar excepciones de un estudiante
 export async function GET(request: Request) {
@@ -11,7 +12,7 @@ export async function GET(request: Request) {
   const studentId = searchParams.get("studentId");
 
   const student = await prisma.student.findFirst({
-    where: { id: studentId ?? "", group: { userId: user!.id } },
+    where: { id: studentId ?? "", group: writableGroups(user!.id) },
     select: { id: true },
   });
 
@@ -36,7 +37,7 @@ export async function POST(request: Request) {
     const { studentId, assessmentId, isExcluded, notes } = await request.json();
 
     const found = await prisma.student.findFirst({
-      where: { id: studentId, group: { userId: user!.id } },
+      where: { id: studentId, group: writableGroups(user!.id) },
       select: { id: true },
     });
 
@@ -65,7 +66,7 @@ export async function DELETE(request: Request) {
     const { id } = await request.json();
 
     const found = await prisma.exception.findFirst({
-      where: { id, student: { group: { userId: user!.id } } },
+      where: { id, student: { group: writableGroups(user!.id) } },
     });
 
     if (!found) {

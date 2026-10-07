@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthenticatedUser, verifyGroupOwnership } from "@/lib/auth";
+import { writableGroups } from "@/lib/access";
 
 // GET: Listar alumnos de un grupo o un alumno individual
 export async function GET(request: Request) {
@@ -13,7 +14,7 @@ export async function GET(request: Request) {
 
   if (id) {
     const student = await prisma.student.findFirst({
-      where: { id, group: { userId: user!.id } },
+      where: { id, group: writableGroups(user!.id) },
       include: {
         customAssessments: {
           include: {
@@ -101,7 +102,7 @@ export async function PUT(request: Request) {
       await request.json();
 
     const existing = await prisma.student.findFirst({
-      where: { id, group: { userId: user!.id } },
+      where: { id, group: writableGroups(user!.id) },
     });
 
     if (!existing) {
@@ -136,7 +137,7 @@ export async function DELETE(request: Request) {
     const { id } = await request.json();
 
     const existing = await prisma.student.findFirst({
-      where: { id, group: { userId: user!.id } },
+      where: { id, group: writableGroups(user!.id) },
     });
 
     if (!existing) {

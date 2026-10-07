@@ -78,6 +78,8 @@ interface GradeTableProps {
   onOpenReport?: (studentId: string) => void;
   onOpenProgress?: (studentId: string) => void;
   onOpenFamily?: (studentId: string) => void;
+  /** Abrir la gestión de acceso al grupo. Solo para quien pueda compartir. */
+  onShareGroup?: () => void;
   onOpenNotes: (studentId: string) => void;
   onEditStudent: (studentId: string) => void;
   onOpenException: (studentId: string, studentName: string) => void;
@@ -121,6 +123,7 @@ export function GradeTable({
   onOpenReport,
   onOpenProgress,
   onOpenFamily,
+  onShareGroup,
   onOpenNotes,
   onEditStudent,
   onOpenException,
@@ -450,7 +453,12 @@ export function GradeTable({
                       )}
                       {onOpenFamily && (
                         <DropdownMenuItem onClick={() => onOpenFamily(student.id)}>
-                          <Users className="mr-2 h-4 w-4" /> Informes para familia
+                          <UserRoundX className="mr-2 h-4 w-4" /> Informes para familia
+                        </DropdownMenuItem>
+                      )}
+                      {onShareGroup && (
+                        <DropdownMenuItem onClick={() => onShareGroup()}>
+                          <Users className="mr-2 h-4 w-4" /> Compartir grupo
                         </DropdownMenuItem>
                       )}
                       <DropdownMenuItem
@@ -834,7 +842,7 @@ export function GradeTable({
                               )}
                               {onOpenFamily && (
                                 <DropdownMenuItem onClick={() => onOpenFamily(student.id)}>
-                                  <Users className="mr-2 h-4 w-4" /> Informes para familia
+                                  <UserRoundX className="mr-2 h-4 w-4" /> Informes para familia
                                 </DropdownMenuItem>
                               )}
                               <DropdownMenuItem

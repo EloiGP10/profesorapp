@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthenticatedUser, verifyAssessmentOwnership } from "@/lib/auth";
+import { writableGroups } from "@/lib/access";
 
 // GET: Obtener rúbrica de una evaluación + puntuaciones de un alumno
 export async function GET(request: Request) {
@@ -40,7 +41,7 @@ export async function POST(request: Request) {
     const { assessmentId, studentId, scores } = await request.json();
 
     const assessment = await prisma.assessment.findFirst({
-      where: { id: assessmentId, trimester: { group: { userId: user!.id } } },
+      where: { id: assessmentId, trimester: { group: writableGroups(user!.id) } },
       include: { rubric: { include: { rows: true } } },
     });
 
@@ -49,7 +50,7 @@ export async function POST(request: Request) {
     }
 
     const student = await prisma.student.findFirst({
-      where: { id: studentId, group: { userId: user!.id } },
+      where: { id: studentId, group: writableGroups(user!.id) },
     });
 
     if (!student) {

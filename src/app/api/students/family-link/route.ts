@@ -3,6 +3,7 @@ import { randomBytes } from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import { getAuthenticatedUser, verifyStudentOwnership } from "@/lib/auth";
 import { rateLimit, LIMITS } from "@/lib/rate-limit";
+import { writableGroups } from "@/lib/access";
 
 /**
  * Gestión del enlace público del informe familiar.
@@ -66,7 +67,7 @@ export async function POST(request: Request) {
   if (body.groupId && Array.isArray(body.studentIds)) {
     const ids = body.studentIds.filter(Boolean).slice(0, 500);
     const students = await prisma.student.findMany({
-      where: { id: { in: ids }, groupId: body.groupId, group: { userId: user!.id } },
+      where: { id: { in: ids }, groupId: body.groupId, group: writableGroups(user!.id) },
       select: { id: true },
     });
     if (students.length !== ids.length) {

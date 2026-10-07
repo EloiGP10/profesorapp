@@ -23,6 +23,7 @@ import { CopyTrimesterDialog } from "@/components/copy-trimester-dialog";
 import { StudentReportDialog } from "@/components/student-report-dialog";
 import { StudentProgressDialog } from "@/components/student-progress-dialog";
 import { FamilyReportDialog } from "@/components/family-report-dialog";
+import { ShareGroupDialog } from "@/components/share-group-dialog";
 import { ExportDialog } from "@/components/export-dialog";
 import { ProfileDialog } from "@/components/profile-dialog";
 import { toast } from "sonner";
@@ -104,6 +105,7 @@ export default function GroupPage() {
   const [dialogReport, setDialogReport] = useState<null | { open: boolean; studentId: string }>(null);
   const [dialogProgress, setDialogProgress] = useState<null | { open: boolean; studentId: string }>(null);
   const [dialogFamily, setDialogFamily] = useState<null | { open: boolean; studentId: string }>(null);
+  const [dialogShare, setDialogShare] = useState(false);
   const [dialogException, setDialogException] = useState<null | { open: boolean; studentId: string; studentName: string }>(null);
   const [dialogAbsence, setDialogAbsence] = useState<null | { open: boolean; studentId: string; studentName: string; absences: { id: string; date: string; type: string; notes: string | null; trimesterId: string | null }[] }>(null);
   const [statsActive, setStatsActive] = useState(false);
@@ -434,6 +436,7 @@ export default function GroupPage() {
           onOpenReport={(studentId) => setDialogReport({ open: true, studentId })}
           onOpenProgress={(studentId) => setDialogProgress({ open: true, studentId })}
           onOpenFamily={(studentId) => setDialogFamily({ open: true, studentId })}
+          onShareGroup={() => setDialogShare(true)}
           onOpenNotes={handleOpenNotes}
           onEditStudent={handleEditStudent}
           onOpenException={handleOpenException}
@@ -629,6 +632,13 @@ export default function GroupPage() {
           percentage: t.percentage,
           assessments: t.assessments ?? [],
         }))}
+      />
+
+      <ShareGroupDialog
+        open={dialogShare}
+        onOpenChange={setDialogShare}
+        groupId={group.id}
+        groupName={group.name}
       />
 
       <ImportDialog
