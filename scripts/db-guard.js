@@ -45,28 +45,28 @@ function run(args) {
 /**
  * Operaciones que destruyen datos o estructura. Si el diff contiene alguna,
  * no se aplican.
+ *
+ * `prisma db push` no sirve aquí: se niega con "use --accept-data-loss"
+ * aunque el diff sea 100 % aditivo, porque su aviso es conservador y no
+ * permite distinguir. Por eso se usa `migrate diff`, que siempre imprime
+ * el SQL, se revisa sentencia a sentencia y, solo si todas son seguras,
+ * se ejecutan con `prisma db execute`.
  */
 const DESTRUCTIVE = [
-  { re: /^\s*--\s*DropTable\b/mi, what: "se eliminaría una tabla" },
-  { re: /^\s*DROP\s+TABLE\b/mi, what: "se eliminaría una tabla" },
-  { re: /^\s*--\s*DropColumn\b/mi, what: "se eliminaría una columna" },
-  { re: /^\s*ALTER\s+TABLE[\s\S]{0,200}?\bDROP\s+COLUMN\b/mi, what: "se eliminaría una columna" },
-  { re: /^\s*--\s*DropIndex\b/mi, what: "se eliminaría un índice" },
-  { re: /^\s*--\s*DropForeignKey\b/mi, what: "se eliminaría una clave foránea" },
-  { re: /^\s*--\s*DropPrimaryKey\b/mi, what: "se eliminaría una clave primaria" },
+  { re: /^\s*DROP\s+(TABLE|COLUMN|INDEX|TYPE|SCHEMA)\b/im, what: "se eliminaría algo" },
+  { re: /^\s*DROP\b/im, what: "se eliminaría algo" },
+  { re: /^\s*ALTER\s+TABLE[\s\S]{0,300}?\bDROP\b/im, what: "ALTER TABLE ... DROP" },
+  { re: /^\s*TRUNCATE\b/im, what: "se truncaría una tabla" },
+  { re: /^\s*DELETE\s+FROM\b/im, what: "se borrarían filas" },
   {
-    re: /\bALTER\s+COLUMN\b[\s\S]{0,140}?\bTYPE\b[\s\S]{0,160}?\bUSING\b/mi,
-    what: "cambiaría el tipo de una columna con conversión de datos",
+    re: /ALTER\s+COLUMN\b[\s\S]{0,200}?\bSET\s+DATA\s+TYPE\b/im,
+    what: "cambiaría el tipo de una columna",
   },
+  { re: /ALTER\s+COLUMN\b[\s\S]{0,200}?\bDROP\b/im, what: "ALTER COLUMN ... DROP" },
 ];
 
-function firstLines(err) {
-  return `${err.stdout || ""}${err.stderr || ""}`
-    .split("\n")
-    .map((l) => l.trim())
-    .filter(Boolean)
-    .slice(-6)
-    .join(" | ") || err.message;
+function diffDestructiveOps(sql) {
+  return DESTRUCTIVE.filter((d) => d.re.test(sql)).map((d) => d.what);
 }
 
 function diffDestructiveOps(sql) {
@@ -141,23 +141,12 @@ function push(skipGenerate) {
   const { ok, sql, error } = computeDiff();
 
   if (!ok) {
-    // No se pudo calcular el diff, así que no se puede comprobar si el push
-    // sería destructivo. Aun así se intenta: `db push` SIN
-    // --accept-data-loss sigue siendo seguro, porque Prisma aborta por su
-    // cuenta si detectara pérdida de datos, y crea las tablas que falten.
+    // No se pudo calcular el diff contra la base de datos: normalmente la BD
+    // no está accesible desde este contenedor. No se aplica nada y se avisa.
     warn(`No se pudo calcular el diff: ${error}`);
-    warn("Se intenta aplicar el schema igualmente en modo seguro.");
-    try {
-      run(["db", "push", "--skip-generate"]);
-      log("Schema aplicado.");
-      if (!skipGenerate) safeGenerate();
-      return;
-    } catch (err) {
-      warn(`No se pudo aplicar el schema: ${firstLines(err)}`);
-      warn("La aplicación arranca con el schema actual.");
-      if (STRICT) process.exit(1);
-      return;
-    }
+    warn("Se omite la actualización del schema. La aplicación arranca igual.");
+    if (STRICT) process.exit(1);
+    return;
   }
 
   writeDiff(sql);
@@ -183,18 +172,14 @@ function push(skipGenerate) {
 
   log("Aplicando cambios de schema (aditivos)...");
   try {
-    // Sin --accept-data-loss: si Prisma detecta riesgo, falla en lugar de borrar.
-    run(["db", "push", "--skip-generate"]);
+    const script = path.join(ROOT, ".next", "db-apply.sql");
+    fs.writeFileSync(script, trimmed);
+    run(["db", "execute", "--file", script, "--schema", SCHEMA]);
+    fs.rmSync(script, { force: true });
     log("Schema aplicado correctamente.");
     if (!skipGenerate) safeGenerate();
   } catch (err) {
-    const msg = `${err.stdout || ""}${err.stderr || ""}`
-      .split("\n")
-      .map((l) => l.trim())
-      .filter(Boolean)
-      .slice(-6)
-      .join(" | ");
-    warn(`No se pudo aplicar el schema: ${msg}`);
+    warn(`No se pudo aplicar el schema: ${firstLines(err)}`);
     warn("La aplicación arranca con el schema actual.");
     if (STRICT) process.exit(1);
   }
