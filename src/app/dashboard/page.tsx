@@ -37,6 +37,8 @@ export default function DashboardPage() {
   const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [repairing, setRepairing] = useState(false);
+  const [repairMsg, setRepairMsg] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogProfile, setDialogProfile] = useState(false);
@@ -53,6 +55,26 @@ export default function DashboardPage() {
   useEffect(() => {
     loadGroups();
   }, []);
+
+  // Reparar el esquema: aplica las tablas que falten sin intervention manual.
+  const repairSchema = async () => {
+    setRepairing(true);
+    setRepairMsg(null);
+    try {
+      const res = await fetch("/api/health", { method: "POST" });
+      const data = await res.json().catch(() => ({}));
+      if (data.ok) {
+        setRepairMsg("Esquema aplicado. Recargando...");
+        setTimeout(() => window.location.reload(), 1200);
+      } else {
+        setRepairMsg(data.error || "No se pudo aplicar el esquema");
+      }
+    } catch {
+      setRepairMsg("Error de conexión al intentar reparar");
+    } finally {
+      setRepairing(false);
+    }
+  };
 
   const loadGroups = async () => {
     try {
@@ -225,18 +247,25 @@ export default function DashboardPage() {
                 {loadError}
               </code>
             </p>
-            <Button
-              variant="outline"
-              size="sm"
-              className="mt-3"
-              onClick={() => {
-                setLoadError(null);
-                setLoading(true);
-                loadGroups();
-              }}
-            >
-              Reintentar
-            </Button>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setLoadError(null);
+                  setLoading(true);
+                  loadGroups();
+                }}
+              >
+                Reintentar
+              </Button>
+              <Button size="sm" variant="outline" onClick={repairSchema} disabled={repairing}>
+                {repairing ? "Aplicando..." : "Actualizar base de datos"}
+              </Button>
+            </div>
+            {repairMsg && (
+              <p className="mt-2 text-xs text-muted-foreground">{repairMsg}</p>
+            )}
           </div>
         )}
 
